@@ -1,0 +1,28 @@
+// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+/*
+ * Copyright (C) 2022 MediaTek Inc.
+ */
+#include "k6991v1_64.dts"
+#include <dt-bindings/pinctrl/mt6373-pinfunc.h>
+
+&gpio_keys {
+    status = "disabled";
+};
+
+&pio {
+	//#ifdef OPLUS_VENDOR_SWTP
+	swtp: swtp {
+		compatible = "mediatek, swtp-eint";
+	};
+	 swtp_1: swtp_1 {
+        compatible = "mediatek, swtp1-eint";
+    };
+	//#endif  /*OPLUS_VENDOR_SWTP*/
+};
+
+&mrdump_ext_rst	{
+	status = "disabled";
+};
+
+/*End of this file, DO NOT ADD ANYTHING HERE*/
+
