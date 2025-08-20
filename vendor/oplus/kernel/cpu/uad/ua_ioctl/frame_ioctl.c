@@ -1354,6 +1354,30 @@ static ssize_t proc_cfbt_suspend_write(struct file *file, const char __user *buf
 	return count;
 }
 
+static ssize_t proc_cfbt_util_down_write(struct file *file, const char __user *buf,
+		size_t count, loff_t *ppos)
+{
+	char buffer[13];
+	int err, val;
+
+	memset(buffer, 0, sizeof(buffer));
+
+	if (count > sizeof(buffer) - 1)
+		count = sizeof(buffer) - 1;
+
+	if (copy_from_user(buffer, buf, count))
+		return -EFAULT;
+
+	buffer[count] = '\0';
+	err = kstrtoint(strstrip(buffer), 10, &val);
+	if (err)
+		return err;
+
+	set_cfbt_util_down(val);
+
+	return count;
+}
+
 #define MAX_INPUT_LEN 100
 static ssize_t proc_cfbt_rescue_write(struct file *file, const char __user *buffer,
 		size_t count, loff_t *ppos)
@@ -1408,6 +1432,17 @@ static ssize_t proc_cfbt_suspend_read(struct file *file, char __user *buf,
 	size_t len = 0;
 
 	len = snprintf(buffer, sizeof(buffer), "%d\n", is_cfbt_suspend());
+
+	return simple_read_from_buffer(buf, count, ppos, buffer, len);
+}
+
+static ssize_t proc_cfbt_util_down_read(struct file *file, char __user *buf,
+		size_t count, loff_t *ppos)
+{
+	char buffer[20];
+	size_t len = 0;
+
+	len = snprintf(buffer, sizeof(buffer), "%d\n", get_cfbt_util_down());
 
 	return simple_read_from_buffer(buf, count, ppos, buffer, len);
 }
@@ -1512,6 +1547,12 @@ static const struct proc_ops proc_cfbt_enable_fops = {
 static const struct proc_ops proc_cfbt_suspend_fops = {
 	.proc_write		= proc_cfbt_suspend_write,
 	.proc_read		= proc_cfbt_suspend_read,
+	.proc_lseek		= default_llseek,
+};
+
+static const struct proc_ops proc_cfbt_util_down_fops = {
+	.proc_write		= proc_cfbt_util_down_write,
+	.proc_read		= proc_cfbt_util_down_read,
 	.proc_lseek		= default_llseek,
 };
 
@@ -1639,6 +1680,9 @@ int frame_ioctl_init(void)
 	if (!pentry)
 		goto ERROR_INIT;
 	pentry = proc_create("cfbt_suspend", 0666, frame_boost_proc, &proc_cfbt_suspend_fops);
+	if (!pentry)
+		goto ERROR_INIT;
+	pentry = proc_create("cfbt_util_down", 0666, frame_boost_proc, &proc_cfbt_util_down_fops);
 	if (!pentry)
 		goto ERROR_INIT;
 	pentry = proc_create("cfbt_rescue", 0666, frame_boost_proc, &proc_cfbt_rescue_fops);

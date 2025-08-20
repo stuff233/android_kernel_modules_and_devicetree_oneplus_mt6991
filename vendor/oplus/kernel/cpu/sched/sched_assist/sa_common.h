@@ -20,6 +20,7 @@
 #include <linux/mm.h>
 #include <linux/slab.h>
 #include <linux/version.h>
+#include <linux/sched/rt.h>
 
 #include "sa_oemdata.h"
 #include "sa_common_struct.h"
@@ -194,6 +195,7 @@ enum IM_FLAG_TYPE {
 	IM_FLAG_AFFINITY_THREAD,
 	IM_FLAG_TPD_SET_CPU_AFFINITY = 16,
 	IM_FLAG_COMPRESS_THREAD = 17, /* compress thread skips locking protect */
+	IM_FLAG_RENDER_THREAD = 18,
 	MAX_IM_FLAG_TYPE,
 };
 
@@ -201,6 +203,8 @@ enum IM_FLAG_TYPE {
 
 enum ots_state {
 	OTS_STATE_SET_AFFINITY,
+	OTS_STATE_DDL_ACTIVE,
+	OTS_STATE_DDL_ACTIVE_PREEMPTED,
 	OTS_STATE_MAX,
 };
 
@@ -236,6 +240,12 @@ struct oplus_rq {
 	int nr_running;
 	u64 min_vruntime;
 	u64 load_weight;
+
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_SCHED_DDL)
+	struct rb_root_cached ddl_root;
+	spinlock_t *ddl_lock;
+#endif
+
 #ifdef CONFIG_LOCKING_PROTECT
 #ifndef CONFIG_LOCKING_LAST_ENTITY
 	struct list_head locking_thread_list;
@@ -360,6 +370,28 @@ extern struct kmem_cache *oplus_task_struct_cachep;
 
 #define ots_to_ts(ots)	(ots->task)
 #define OTS_IDX			0
+#define ORQ_IDX			0
+
+static inline bool test_task_is_fair(struct task_struct *task)
+{
+	DEBUG_BUG_ON(!task);
+
+	/* valid CFS priority is MAX_RT_PRIO..MAX_PRIO-1 */
+	if ((task->prio >= MAX_RT_PRIO) && (task->prio <= MAX_PRIO-1))
+		return true;
+	return false;
+}
+
+static inline bool test_task_is_rt(struct task_struct *task)
+{
+	DEBUG_BUG_ON(!task);
+
+	/* valid RT priority is 0..MAX_RT_PRIO-1 */
+	if (rt_prio(task->prio))
+		return true;
+
+	return false;
+}
 
 static inline struct oplus_task_struct *get_oplus_task_struct(struct task_struct *t)
 {
@@ -671,6 +703,7 @@ bool is_mid_cluster(int cpu);
 bool im_mali(const char *comm);
 bool is_top(struct task_struct *p);
 bool task_is_runnable(struct task_struct *task);
+struct oplus_rq *get_oplus_rq(struct rq *rq);
 
 typedef unsigned long (*kallsyms_lookup_name_t)(const char *name);
 extern kallsyms_lookup_name_t _kallsyms_lookup_name;

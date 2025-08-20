@@ -954,6 +954,11 @@ static enum mml_mode tp_query_mode_racing(struct mml_dev *mml, struct mml_frame_
 {
 	struct mml_topology_cache *tp;
 	u32 pixel;
+	u32 out_w = info->dest[0].data.width;
+	u32 out_h = info->dest[0].data.height;
+
+	mml_log("%s in crop %d %d out %d %d", __func__, info->dest[0].crop.r.width, info->dest[0].crop.r.height,
+		info->dest[0].data.width, info->dest[0].data.height);
 
 	if (unlikely(mml_racing)) {
 		if (mml_racing == 2)
@@ -1060,10 +1065,14 @@ static enum mml_mode tp_query_mode_racing(struct mml_dev *mml, struct mml_frame_
 		goto decouple;
 	}
 
-	if ((info->dest[0].data.width > info->dest[0].crop.r.width &&
-		info->dest[0].data.height < info->dest[0].crop.r.height) ||
-		(info->dest[0].data.width < info->dest[0].crop.r.width &&
-		info->dest[0].data.height > info->dest[0].crop.r.height)) {
+	if (info->dest[0].rotate == MML_ROT_90 ||
+		info->dest[0].rotate == MML_ROT_270)
+		swap(out_w, out_h);
+
+	if ((out_w > info->dest[0].crop.r.width &&
+		out_h < info->dest[0].crop.r.height) ||
+		(out_w < info->dest[0].crop.r.width &&
+		out_h > info->dest[0].crop.r.height)) {
 		*reason = mml_query_rszratio;
 		goto decouple;
 	}

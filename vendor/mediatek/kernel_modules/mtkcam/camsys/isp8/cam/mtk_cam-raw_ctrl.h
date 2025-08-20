@@ -33,6 +33,13 @@ bool res_raw_ois_compensation(const struct mtk_cam_resource_raw_v2 *res_raw)
 	return res_raw->ois_compensation == 1;
 }
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+static inline
+bool res_raw_is_buffer_increase(const struct mtk_cam_resource_raw_v2 *res_raw)
+{
+	return res_raw->buffer_increase == 1;
+}
+#endif
 static inline bool scen_is_normal(const struct mtk_cam_scen *scen)
 {
 	return scen->id == MTK_CAM_SCEN_NORMAL ||

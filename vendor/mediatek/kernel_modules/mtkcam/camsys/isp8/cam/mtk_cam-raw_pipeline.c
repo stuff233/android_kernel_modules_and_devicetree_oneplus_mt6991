@@ -311,10 +311,29 @@ mtk_cam_resource_update_work_buf(struct mtk_cam_resource_v2 *user_ctrl)
 		exp_num = (scen->scen.normal.exp_num == 0) ?
 					1 : scen->scen.normal.exp_num;
 		#endif /*OPLUS_FEATURE_CAMERA_COMMON*/
+
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+		/* wa: for performace, dc mode work buffer increasing */
+		if (r->buffer_increase == 1) {
+			buf_require = res_raw_is_dc_mode(r) ? exp_num * 2 : exp_num - 1;
+			buf_require = !!(scen->scen.normal.w_chn_supported) ?
+						buf_require * 2 : buf_require;
+			if (res_raw_is_dc_mode(r))
+				buf_require = buf_require + (r->ois_compensation ? exp_num : 0);
+			else
+				buf_require = buf_require * (r->ois_compensation ? 2 : 1);
+		} else {
+			buf_require = res_raw_is_dc_mode(r) ? exp_num : exp_num - 1;
+			buf_require = !!(scen->scen.normal.w_chn_supported) ?
+						buf_require * 2 : buf_require;
+			buf_require = buf_require * (r->ois_compensation ? 2 : 1);
+		}
+#else
 		buf_require = res_raw_is_dc_mode(r) ? exp_num : exp_num - 1;
 		buf_require = !!(scen->scen.normal.w_chn_supported) ?
 					buf_require * 2 : buf_require;
 		buf_require = buf_require * (r->ois_compensation ? 2 : 1);
+#endif
 		break;
 	case MTK_CAM_SCEN_MSTREAM:
 		buf_require = res_raw_is_dc_mode(r) ? 2 : 1;

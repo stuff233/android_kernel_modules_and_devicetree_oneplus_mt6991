@@ -35,10 +35,6 @@ int mtk_mml_msg = 1;
 EXPORT_SYMBOL(mtk_mml_msg);
 module_param(mtk_mml_msg, int, 0644);
 
-int mml_dl_disp_dump = 1;
-EXPORT_SYMBOL(mml_dl_disp_dump);
-module_param(mml_dl_disp_dump, int, 0644);
-
 /* see mtk-mml-core.c enum mml_hrt_mode for more detail */
 int mtk_mml_hrt_mode;
 EXPORT_SYMBOL(mtk_mml_hrt_mode);
@@ -864,13 +860,6 @@ static void core_comp_dump(struct mml_task *task, u32 pipe, int cnt)
 		call_dbg_op(comp, dump);
 	}
 
-	if ((cfg->info.mode == MML_MODE_DIRECT_LINK) ||
-		 (cfg->info.mode == MML_MODE_RACING)) {
-		 
-		if (mml_dl_disp_dump)
-			cfg->task_ops->disp_dump(task);
-	}
-
 	if (cnt >= 0)
 		mml_dpc_dump();
 
@@ -1214,11 +1203,9 @@ static u32 mml_core_calc_tput_couple(struct mml_task *task, u32 pixel, u32 pipe)
 			/* workaround, increase mml throughput to avoid underrun */
 			task_tput = task_tput * 11 / 10;
 		}
-		mml_log("%s panel_w %d data.width %d task_tput %d", __func__, cfg->panel_w, dest->data.width, task_tput);
-		if (cfg->panel_w > dest->data.width) {
+
+		if (cfg->panel_w > dest->data.width)
 			task_tput = (u32)((u64)task_tput * cfg->panel_w / dest->data.width);
-			mml_log("%s panel_w > width task_tput %d", __func__, task_tput);
-		}
 	} else if (info->mode == MML_MODE_DIRECT_LINK) {
 		/* workaround, increase mml throughput to avoid underrun */
 		if (cfg->panel_w > dest->data.width)
@@ -1417,9 +1404,6 @@ static void mml_core_dvfs_begin(struct mml_task *task, u32 pipe)
 	}
 
 	mml_msg_qos("task dvfs begin %p pipe %u throughput %u (%u) bandwidth %u pixel %u dpc %u",
-		task, pipe, throughput, task_pipe_tmp->throughput[dpc],
-		task_pipe_tmp->bandwidth, max_pixel, dpc);
-	mml_log("task dvfs begin %p pipe %u throughput %u (%u) bandwidth %u pixel %u dpc %u",
 		task, pipe, throughput, task_pipe_tmp->throughput[dpc],
 		task_pipe_tmp->bandwidth, max_pixel, dpc);
 done:

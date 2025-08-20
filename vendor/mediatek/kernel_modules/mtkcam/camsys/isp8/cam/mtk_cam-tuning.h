@@ -53,7 +53,7 @@ struct mtk_cam_tuning {
 
 void mtk_cam_tuning_probe(void);
 
-void mtk_cam_tuning_init(struct mtk_cam_tuning *param);
+void mtk_cam_tuning_init(struct mtk_cam_job *job);
 
 void mtk_cam_tuning_update(struct mtk_cam_tuning *param);
 
@@ -90,6 +90,10 @@ void oplus_cam_calc_ois_data(struct mtk_cam_tuning *param, struct out_ois_param 
 void oplus_cam_copy_res(int *pInBuf, struct mtk_cam_tuning *param);
 
 int oplus_cam_poll_ois_thread(void *arg);
+
+void oplus_get_sensor_mirror_type(struct mtk_cam_job *job, u8* mirror);
+
+void oplus_swap_otp_data(unsigned char* ori_otp_data, unsigned char* swap_otp_data);
 /*
  * oplus's part: end
  */

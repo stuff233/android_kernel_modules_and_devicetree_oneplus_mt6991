@@ -210,6 +210,7 @@ void mtk_imgsys_mmqos_set_by_scen_plat8(struct mtk_imgsys_dev *imgsys_dev,
 	u64 bw_final[4] = {0};
 	u32 sidx = 0;
 	const u32 step = imgsys_qos_update_freq;
+	uint8_t boost = frm_info->user_info[0].boost;
 
 	frm_num = frm_info->total_frmnum;
 	hw_comb = frm_info->user_info[frm_num-1].hw_comb;
@@ -220,12 +221,12 @@ void mtk_imgsys_mmqos_set_by_scen_plat8(struct mtk_imgsys_dev *imgsys_dev,
 	if (imgsys_cmdq_is_stream_off() == 0 && isSet == 1) {
 		if (imgsys_qos_dbg_enable_plat8())
 			dev_info(qos_info->dev,
-				 "imgsys_qos: frame_no:%d req_cnt:%lu fps:%d vss:%d\n",
+				 "imgsys_qos: frame_no:%d req_cnt:%lu fps:%d vss:%d boost:0x%X\n",
 				 frm_info->frame_no, qos_info->req_cnt,
-				 fps, dvfs_info->vss_task_cnt);
+				 fps, dvfs_info->vss_task_cnt, boost);
 
-		if (dvfs_info->vss_task_cnt > 0 &&
-		    qos_info->qos_path[IMGSYS_COMMON_0_R].bw < IMGSYS_QOS_MAX_PERF) {
+		if ((dvfs_info->vss_task_cnt > 0 || boost == 0xFF) &&
+			qos_info->qos_path[IMGSYS_COMMON_0_R].bw < IMGSYS_QOS_MAX_PERF) {
 			qos_info->qos_path[IMGSYS_COMMON_0_R].bw = IMGSYS_QOS_MAX_PERF;
 			qos_info->qos_path[IMGSYS_COMMON_0_W].bw = IMGSYS_QOS_MAX_PERF;
 			qos_info->qos_path[IMGSYS_COMMON_1_R].bw = IMGSYS_QOS_MAX_PERF;
@@ -298,7 +299,8 @@ void mtk_imgsys_mmqos_set_by_scen_plat8(struct mtk_imgsys_dev *imgsys_dev,
 				qos_info->bw_avg[1][1] += bw_final[3];
 				qos_info->avg_cnt++;
 
-				if (dvfs_info->vss_task_cnt == 0 &&
+				if ((dvfs_info->vss_task_cnt == 0) &&
+					(boost != 0xFF) &&
 					((qos_info->avg_cnt >= step) ||
 					 (qos_info->req_cnt <= 1))) {
 					/* unit is MB/s */
@@ -350,6 +352,15 @@ void mtk_imgsys_mmqos_set_by_scen_plat8(struct mtk_imgsys_dev *imgsys_dev,
 				}
 
 			}
+		}
+		if (boost == 0xFF) {
+			/* reset QoS info */
+			qos_info->req_cnt = 0;
+			qos_info->avg_cnt = 0;
+			qos_info->bw_avg[0][0] = 0;
+			qos_info->bw_avg[0][1] = 0;
+			qos_info->bw_avg[1][0] = 0;
+			qos_info->bw_avg[1][1] = 0;
 		}
 	}
 }

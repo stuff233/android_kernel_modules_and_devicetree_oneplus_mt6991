@@ -5,10 +5,15 @@
 
 #include "mtk_cam.h"
 
+// This macro needs to be consistent with the macro definition in the following file
+//    vendor/oplus/hardware/camera/mtkcam/mtkcam-custom/aaa/aaa/lsc/OplusShadingUtil.cpp
 #define OTP_SIZE 2340
+#define OTP_DATA_INDEX_NUM (9)
+#define OTP_DATA_TABLE_NUM (130)
 extern void custom_eeprom_read(bool *is_valid, void *d_data);
 static bool do_set_otp_once;
 static unsigned char ois_otp[OTP_SIZE];
+static unsigned char swap_ois_otp[OTP_SIZE];
 
 
 /*
@@ -1439,6 +1444,36 @@ void oplus_cam_copy_res(int *pInBuf, struct mtk_cam_tuning *param)
 	}
 }
 
+void oplus_get_sensor_mirror_type(struct mtk_cam_job *job, u8* mirror)
+{
+	if (job &&
+		job->sensor &&
+		job->sensor->ops &&
+		job->sensor->ops->core &&
+		job->sensor->ops->core->command) {
+		job->sensor->ops->core->command(job->sensor,
+						V4L2_CMD_GET_SENSOR_MIRROR_TYPE,
+						mirror);
+	}
+}
+
+void oplus_swap_otp_data(unsigned char* ori_otp_data, unsigned char* swap_otp_data)
+{
+	int i;
+	int j;
+	for (i = 0; i < OTP_DATA_INDEX_NUM; i++) {
+		swap_otp_data[i * (OTP_DATA_TABLE_NUM * 2)] = ori_otp_data[i * (OTP_DATA_TABLE_NUM * 2)];
+		swap_otp_data[i * (OTP_DATA_TABLE_NUM * 2) + 1] = ori_otp_data[i * (OTP_DATA_TABLE_NUM * 2) + 1];
+		for (j = 1; j < OTP_DATA_TABLE_NUM; j++) {
+			swap_otp_data[i * (OTP_DATA_TABLE_NUM * 2) + j * 2] =
+				ori_otp_data[i * (OTP_DATA_TABLE_NUM * 2) + (OTP_DATA_TABLE_NUM - j) * 2];
+			swap_otp_data[i * (OTP_DATA_TABLE_NUM * 2) + j * 2 + 1] =
+				ori_otp_data[i * (OTP_DATA_TABLE_NUM * 2) + (OTP_DATA_TABLE_NUM - j) * 2 + 1];
+		}
+	}
+	pr_info("%s: \n", __func__);
+}
+
 /*
  * oplus's part: end
  */
@@ -1447,8 +1482,9 @@ void mtk_cam_tuning_probe(void)
 {
 }
 
-void mtk_cam_tuning_init(struct mtk_cam_tuning *param)
+void mtk_cam_tuning_init(struct mtk_cam_job *job)
 {
+	u8 mirror = IMAGE_NORMAL;
 	pr_info("%s: platform_id:%u \n", __func__, GET_PLAT_HW(platform_id));
 
 	if (!do_set_otp_once) {
@@ -1458,7 +1494,17 @@ void mtk_cam_tuning_init(struct mtk_cam_tuning *param)
 
 		custom_eeprom_read(&is_otp_valid, (void *)ois_otp);
 
-		mtk_set_ois_table(&is_otp_valid, (void *)ois_otp, OTP_SIZE);
+		if (is_otp_valid) {
+			oplus_get_sensor_mirror_type(job, &mirror);
+		}
+
+		if (mirror == IMAGE_V_MIRROR) {
+			oplus_swap_otp_data(ois_otp, swap_ois_otp);
+			mtk_set_ois_table(&is_otp_valid, (void *)swap_ois_otp, OTP_SIZE);
+		} else {
+			mtk_set_ois_table(&is_otp_valid, (void *)ois_otp, OTP_SIZE);
+		}
+		pr_info("%s: mirror:%u \n", __func__, mirror);
 	}
 
 	if (GET_PLAT_HW(platform_id) == 6899) {

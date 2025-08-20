@@ -9475,33 +9475,6 @@ void mtk_drm_wait_mml_submit_done(struct mtk_mml_cb_para *cb_para)
 	DDPINFO("%s- ret:%d\n", __func__, ret);
 }
 
-static void mtk_drm_mmlsys_dump_cb(void *cb_param)
-{
-    struct drm_crtc *crtc = (struct drm_crtc *)cb_param;
-    struct mtk_drm_crtc *mtk_crtc;
-    struct cmdq_client *cl;
-    dma_addr_t trig_pc = 0;
-    u64 *inst;
-
-    mtk_crtc = to_mtk_crtc(crtc);
-
-    mtk_drm_crtc_analysis(crtc);
-    mtk_drm_crtc_dump(crtc);
-
-    if ((mtk_crtc->trig_loop_cmdq_handle) &&
-            (mtk_crtc->trig_loop_cmdq_handle->cl)) {
-        cl = (struct cmdq_client *)mtk_crtc->trig_loop_cmdq_handle->cl;
-        DDPMSG("++++++ Dump trigger loop ++++++\n");
-        cmdq_thread_dump(cl->chan, mtk_crtc->trig_loop_cmdq_handle,
-							&inst, &trig_pc);
-        cmdq_dump_pkt(mtk_crtc->trig_loop_cmdq_handle, trig_pc, true);
-
-        DDPMSG("------ Dump trigger loop ------\n");
-    }
-
-}
-
-
 struct mml_drm_ctx *mtk_drm_get_mml_drm_ctx(struct drm_device *dev,
 	struct drm_crtc *crtc)
 {
@@ -9538,7 +9511,6 @@ struct mml_drm_ctx *mtk_drm_get_mml_drm_ctx(struct drm_device *dev,
 	disp_param.ddren_cb = mtk_drm_mmlsys_ddren_cb;
 	disp_param.kick_idle_cb = mtk_drm_mmlsys_kick_idle_cb;
 	disp_param.disp_crtc = (void *)crtc;
-	disp_param.disp_dump_dl_cb = mtk_drm_mmlsys_dump_cb;
 
 	mml_ctx = mml_drm_get_context(mml_pdev, &disp_param);
 	if (IS_ERR_OR_NULL(mml_ctx)) {

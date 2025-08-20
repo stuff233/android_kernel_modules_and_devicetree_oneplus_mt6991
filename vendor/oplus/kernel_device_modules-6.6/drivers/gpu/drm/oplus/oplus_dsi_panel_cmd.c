@@ -222,18 +222,7 @@ struct mtk_ddic_dsi_cmd send_cmd_to_ddic = {};
 unsigned char ddic_para_list[MAX_TX_CMD_NUM_PACK][OPLUS_SEND_CMD_MAX] = {0};
 
 extern atomic_t oplus_pcp_handle_lock;
-extern int get_project(void);
 extern void oplus_pcp_handle(bool cmd_is_pcp,  void *handle);
-
-bool project_is_emira(void)
-{
-	int porject = get_project();
-	if (24813 == porject) {
-		return true;
-	}
-
-	return false;
-}
 
 bool oplus_dsi_panel_is_pcp(enum dsi_cmd_id cmd_set_id)
 {
@@ -731,12 +720,10 @@ inline int oplus_dsi_panel_get_cell_index(int mode_id)
 		index_value = 120;
 		break;
 	case FHD_OPLUS120:
+		index_value = 122;
+		break;
 	case FHD_SDC144:
-		if (project_is_emira()) {
-			index_value = 144;
-		} else {
-			index_value = 122;
-		}
+		index_value = 144;
 		break;
 	case FHD_SDC30:
 		index_value = 30;

@@ -635,14 +635,13 @@ inline bool is_curr_cfbt_task(struct task_struct *p)
 	return false;
 }
 
-#define DEF_SKIP_CPU (6)
 int cfbt_should_skip(int first_cpu)
 {
 	struct oplus_sched_cluster *cluster;
 	int cpu, cpu_tmp;
 	struct rq *rq = NULL;
 	int ret = 1;
-	int skip_cpu = DEF_SKIP_CPU;
+	int skip_cpu = get_skip_cpu_by_user_config();
 
 	if (first_cpu < skip_cpu) {
 		ret = 0;

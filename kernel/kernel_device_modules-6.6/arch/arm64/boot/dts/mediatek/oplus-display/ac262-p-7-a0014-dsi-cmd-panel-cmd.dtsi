@@ -130,6 +130,32 @@
 					39 00 00 40 00 00 02 38 00
 					39 00 00 00 00 00 03 51 00 00
 				];
+				oplus,dsi-lhbm-pressed-icon-on-command = [
+					39 00 00 40 00 00 06 F0 55 AA 52 08 08
+					39 00 00 40 00 00 02 6F 4A
+					39 00 00 40 00 00 0D A9 02 00 DF 31 31 06 01 00 87 00 00 05
+					39 00 00 40 00 00 06 F0 55 AA 52 08 04
+					39 00 00 40 00 00 02 CB 37
+					39 00 00 00 00 00 02 8B 10
+					39 00 00 40 00 00 06 F0 55 AA 52 08 00
+					39 00 00 40 00 00 02 6F 30
+					39 00 00 40 00 00 02 DF 00
+					39 00 00 40 00 00 02 6F 36
+					39 00 00 40 00 00 02 DF 01
+				];
+				oplus,dsi-lhbm-pressed-icon-on-pwm-command = [
+					39 00 00 40 00 00 06 F0 55 AA 52 08 08
+					39 00 00 40 00 00 02 6F 4A
+					39 00 00 40 00 00 0D A9 02 00 DF 31 31 16 01 00 87 00 00 25
+					39 00 00 40 00 00 06 F0 55 AA 52 08 04
+					39 00 00 40 00 00 02 CB 37
+					39 00 00 00 00 00 02 8B 10
+					39 00 00 40 00 00 06 F0 55 AA 52 08 00
+					39 00 00 40 00 00 02 6F 30
+					39 00 00 40 00 00 02 DF 00
+					39 00 00 40 00 00 02 6F 36
+					39 00 00 40 00 00 02 DF 01
+				];
 				oplus,dsi-adfr-min-fps-120hz-command = [
 				];
 				oplus,dsi-adfr-min-fps-60hz-command = [
@@ -156,6 +182,8 @@
 				oplus,dsi-on-command-state = "dsi_lp_mode";
 				oplus,dsi-aod-off-command-state = "dsi_ls_mode";
 				oplus,dsi-panel-aod-off-insert-black-command-state = "dsi_ls_mode";
+				oplus,dsi-lhbm-pressed-icon-on-command-state = "dsi_hs_mode";
+				oplus,dsi-lhbm-pressed-icon-on-pwm-command-state = "dsi_hs_mode";
 				oplus,dsi-adfr-min-fps-120hz-command-state = "dsi_hs_mode";
 				oplus,dsi-adfr-min-fps-60hz-command-state = "dsi_hs_mode";
 				oplus,dsi-adfr-min-fps-30hz-command-state = "dsi_hs_mode";
@@ -325,6 +353,22 @@
 					39 00 00 40 00 00 02 38 00
 					39 00 00 00 00 00 03 51 00 00
 				];
+				oplus,dsi-lhbm-pressed-icon-on-command = [
+					39 00 00 40 00 00 06 F0 55 AA 52 08 08
+					39 00 00 40 00 00 02 6F 4A
+					39 00 00 40 00 00 0D A9 02 00 DF 31 31 06 01 00 87 00 00 05
+					39 00 00 40 00 00 06 F0 55 AA 52 08 04
+					39 00 00 40 00 00 02 CB 37
+					39 00 00 00 00 00 02 8B 10
+				];
+				oplus,dsi-lhbm-pressed-icon-on-pwm-command = [
+					39 00 00 40 00 00 06 F0 55 AA 52 08 08
+					39 00 00 40 00 00 02 6F 4A
+					39 00 00 40 00 00 0D A9 02 00 DF 31 31 16 01 00 87 00 00 25
+					39 00 00 40 00 00 06 F0 55 AA 52 08 04
+					39 00 00 40 00 00 02 CB 37
+					39 00 00 00 00 00 02 8B 10
+				];
 				oplus,dsi-adfr-min-fps-90hz-command = [
 				];
 				oplus,dsi-adfr-min-fps-45hz-command = [
@@ -351,6 +395,8 @@
 				oplus,dsi-on-command-state = "dsi_lp_mode";
 				oplus,dsi-aod-off-command-state = "dsi_ls_mode";
 				oplus,dsi-panel-aod-off-insert-black-command-state = "dsi_ls_mode";
+				oplus,dsi-lhbm-pressed-icon-on-command-state = "dsi_hs_mode";
+				oplus,dsi-lhbm-pressed-icon-on-pwm-command-state = "dsi_hs_mode";
 				oplus,dsi-adfr-min-fps-90hz-command-state = "dsi_hs_mode";
 				oplus,dsi-adfr-min-fps-45hz-command-state = "dsi_hs_mode";
 				oplus,dsi-adfr-min-fps-30hz-command-state = "dsi_hs_mode";
@@ -520,6 +566,32 @@
 					39 00 00 40 00 00 02 38 00
 					39 00 00 00 00 00 03 51 00 00
 				];
+				oplus,dsi-lhbm-pressed-icon-on-command = [
+					39 00 00 40 00 00 06 F0 55 AA 52 08 08
+					39 00 00 40 00 00 02 6F 4A
+					39 00 00 40 00 00 0D A9 02 00 DF 31 31 06 01 00 87 00 00 05
+					39 00 00 40 00 00 06 F0 55 AA 52 08 04
+					39 00 00 40 00 00 02 CB 37
+					39 00 00 00 00 00 02 8B 10
+					39 00 00 40 00 00 06 F0 55 AA 52 08 00
+					39 00 00 40 00 00 02 6F 30
+					39 00 00 40 00 00 02 DF 02
+					39 00 00 40 00 00 02 6F 36
+					39 00 00 40 00 00 02 DF 03
+				];
+				oplus,dsi-lhbm-pressed-icon-on-pwm-command = [
+					39 00 00 40 00 00 06 F0 55 AA 52 08 08
+					39 00 00 40 00 00 02 6F 4A
+					39 00 00 40 00 00 0D A9 02 00 DF 31 31 16 01 00 87 00 00 25
+					39 00 00 40 00 00 06 F0 55 AA 52 08 04
+					39 00 00 40 00 00 02 CB 37
+					39 00 00 00 00 00 02 8B 10
+					39 00 00 40 00 00 06 F0 55 AA 52 08 00
+					39 00 00 40 00 00 02 6F 30
+					39 00 00 40 00 00 02 DF 02
+					39 00 00 40 00 00 02 6F 36
+					39 00 00 40 00 00 02 DF 03
+				];
 				oplus,dsi-adfr-min-fps-60hz-command = [
 				];
 				oplus,dsi-adfr-min-fps-30hz-command = [
@@ -544,6 +616,8 @@
 				oplus,dsi-on-command-state = "dsi_lp_mode";
 				oplus,dsi-aod-off-command-state = "dsi_ls_mode";
 				oplus,dsi-panel-aod-off-insert-black-command-state = "dsi_ls_mode";
+				oplus,dsi-lhbm-pressed-icon-on-command-state = "dsi_hs_mode";
+				oplus,dsi-lhbm-pressed-icon-on-pwm-command-state = "dsi_hs_mode";
 				oplus,dsi-adfr-min-fps-60hz-command-state = "dsi_hs_mode";
 				oplus,dsi-adfr-min-fps-30hz-command-state = "dsi_hs_mode";
 				oplus,dsi-adfr-min-fps-20hz-command-state = "dsi_hs_mode";

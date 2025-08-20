@@ -70,6 +70,19 @@ static inline bool check_qof_support(struct mtk_cam_job *job)
 	return (GET_PLAT_HW(qof_support) && !disable_qof && !job->enable_hsf_raw && !is_ois_compensation(job));
 }
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/* wa: for performace, dc mode work buffer increasing */
+static inline void wa_for_srt(struct mtk_cam_job *job)
+{
+	if (!is_dc_mode(job)) {
+		return;
+	}
+	if (is_buffer_increase(job)) {
+		job->scq_period = job->scq_period * 10;
+	}
+}
+#endif
+
 static struct mtk_raw_request_data *req_get_raw_data(struct mtk_cam_ctx *ctx,
 						     struct mtk_cam_request *req);
 static bool is_sensor_mode_update(struct mtk_cam_job *job);
@@ -1277,11 +1290,11 @@ _stream_on(struct mtk_cam_job *job, bool on)
 	/* ois compensation */
 #ifndef OPLUS_FEATURE_CAMERA_COMMON
 	if (is_ois_compensation(job))
-		mtk_cam_tuning_init(&job->tuning_param);
+		mtk_cam_tuning_init(job);
 #else /*OPLUS_FEATURE_CAMERA_COMMON*/
 	if (is_ois_compensation(job)) {
 		ctx->is_ois_compensation = 1;
-		mtk_cam_tuning_init(&job->tuning_param);
+		mtk_cam_tuning_init(job);
 	}
 #endif /*OPLUS_FEATURE_CAMERA_COMMON*/
 
@@ -3048,6 +3061,11 @@ _job_pack_otf_stagger(struct mtk_cam_job *job,
 		/* check if slave raw need to init or uninit */
 		job_raw_change_hw_init(job);
 	}
+
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	wa_for_srt(job);
+#endif
+
 	job->do_ipi_config = false;
 	if (check_if_need_configure(ctx->configured, job->seamless_switch,
 				    job->raw_switch, job->raw_change)) {
@@ -3329,6 +3347,11 @@ _job_pack_normal(struct mtk_cam_job *job,
 		/* check if slave/new raw need to uninit or init */
 		job_raw_change_hw_init(job);
 	}
+
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	wa_for_srt(job);
+#endif
+
 	job->do_ipi_config = false;
 	if (check_if_need_configure(ctx->configured,
 				    job->seamless_switch,
@@ -4413,7 +4436,7 @@ _common_seamless_after_frame_done(struct mtk_cam_job *job)
 		job, job->raw_change_uninit_engine);
 
 	if (is_ois_comp)
-		mtk_cam_tuning_init(&job->tuning_param);
+		mtk_cam_tuning_init(job);
 	lock_done_ctrl_enable(raw_dev, is_ois_comp);
 
 	stream_on(raw_dev, 1, false);

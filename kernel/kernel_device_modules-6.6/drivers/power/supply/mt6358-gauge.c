@@ -821,7 +821,11 @@ static int get_nafg_vbat(struct mtk_gauge *gauge)
 			AUXADC_ADC_OUT_NAG_SHIFT)) >> AUXADC_ADC_OUT_NAG_SHIFT;
 		if ((nag_vbat_reg & 0x8000) != 0)
 			break;
+#ifdef OPLUS_FEATURE_CHG_BASIC
+		msleep(2);
+#else
 		msleep(30);
+#endif
 		i++;
 	} while (i <= 5);
 

@@ -338,6 +338,23 @@ static int g_cmd_g_sensor_stream_status(struct adaptor_ctx *ctx, void *arg)
 	return ret;
 }
 
+// #define OPLUS_FEATURE_CAMERA_COMMON
+static int g_cmd_sensor_mirror_type(struct adaptor_ctx *ctx, void *arg)
+{
+	int ret = 0;
+	u8 *mirror = NULL;
+
+	/* unexpected case, arg is nullptr */
+	if (unlikely((chk_input_arg(ctx, arg, &ret, __func__)) != 0))
+		return ret;
+
+	mirror = arg;
+	*mirror = ctx->subctx.s_ctx.mirror;
+
+	return ret;
+}
+// #endif
+
 
 /* SET */
 static int s_cmd_fsync_sync_frame_start_end(struct adaptor_ctx *ctx, void *arg)
@@ -622,6 +639,9 @@ static const struct command_entry command_list[] = {
 	{V4L2_CMD_G_SENSOR_VC_INFO_BY_SCENARIO, g_cmd_sensor_vc_info_by_scenario},
 	{V4L2_CMD_G_SENSOR_STREAM_STATUS, g_cmd_g_sensor_stream_status},
 	{V4L2_CMD_G_SENSOR_FAKE_SENSOR_INFO, g_cmd_fake_sensor_info},
+// #define OPLUS_FEATURE_CAMERA_COMMON
+	{V4L2_CMD_GET_SENSOR_MIRROR_TYPE, g_cmd_sensor_mirror_type},
+// #endif
 
 	/* SET */
 	{V4L2_CMD_FSYNC_SYNC_FRAME_START_END, s_cmd_fsync_sync_frame_start_end},

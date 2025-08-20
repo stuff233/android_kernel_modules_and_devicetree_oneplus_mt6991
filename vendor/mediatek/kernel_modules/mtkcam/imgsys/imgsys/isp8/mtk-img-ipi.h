@@ -149,7 +149,7 @@ struct img_swfrm_info {
 	uint64_t sw_bwoft;
 	int subfrm_idx;
 	void *g_swbuf;
-	void *bw_swbuf;
+	uint64_t boost;
 	uint64_t pixel_bw;
 	int tunmeta_size;
 	struct private_data priv[IMGSYS_MAX];

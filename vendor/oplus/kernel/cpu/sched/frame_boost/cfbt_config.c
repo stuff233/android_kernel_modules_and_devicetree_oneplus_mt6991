@@ -9,7 +9,7 @@
 
 #define MAX_CFBT_STAGES 5
 
-int user_configurations[MAX_USER_CFG_COUNT] = {1, 512, 512, 0, 0, 0};
+int user_configurations[MAX_USER_CFG_COUNT] = {1, 512, 512, 7, 0, 0};
 EXPORT_SYMBOL(user_configurations);
 
 int tracing_enabled = 0;
@@ -20,6 +20,7 @@ EXPORT_SYMBOL(selection_option_enabled);
 
 int cfbt_enable = 0;
 int cfbt_suspend = 0;
+int cfbt_down_util = 1024;
 int stage_timeouts[MAX_CFBT_STAGES] = {20, 16, 16, 33, 20};
 
 struct scene_stage_mapping {
@@ -56,6 +57,11 @@ int get_stage_enhancement_value(void)
 int get_frame_enhancement_value(void)
 {
 	return get_user_configuration(CFBT_CONF_FRAME_ENHANCE);
+}
+
+int get_skip_cpu_by_user_config(void)
+{
+	return get_user_configuration(CFBT_CONF_SKIP_CPU);
 }
 
 // Stage time functions
@@ -183,7 +189,7 @@ extern int __cfbt_set_scene_end(struct cfbt_struct *data);
 void enable_cfbt(int value)
 {
 	struct cfbt_struct tmp;
-    cfbt_enable = value;
+	cfbt_enable = value;
 
 	if (!value)
 		__cfbt_set_scene_end(&tmp);
@@ -192,18 +198,30 @@ EXPORT_SYMBOL(enable_cfbt);
 
 int is_cfbt_enabled(void)
 {
-    return cfbt_enable;
+	return cfbt_enable;
 }
 EXPORT_SYMBOL(is_cfbt_enabled);
 
 void suspend_cfbt(int value)
 {
-    cfbt_suspend = value;
+	cfbt_suspend = value;
 }
 EXPORT_SYMBOL(suspend_cfbt);
 
 int is_cfbt_suspend(void)
 {
-    return cfbt_suspend;
+	return cfbt_suspend;
 }
 EXPORT_SYMBOL(is_cfbt_suspend);
+
+void set_cfbt_util_down(int value)
+{
+	cfbt_down_util = value;
+}
+EXPORT_SYMBOL(set_cfbt_util_down);
+
+int get_cfbt_util_down(void)
+{
+	return cfbt_down_util;
+}
+EXPORT_SYMBOL(get_cfbt_util_down);

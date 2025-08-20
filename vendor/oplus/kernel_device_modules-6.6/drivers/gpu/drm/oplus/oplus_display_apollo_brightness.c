@@ -33,6 +33,7 @@
 extern void apollo_set_brightness_for_show(unsigned int level);
 extern u16 mtk_get_gpr(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle);
 extern int oplus_display_panel_set_pwm_bl(struct drm_crtc *crtc, struct cmdq_pkt *cmdq_handle, unsigned int level, bool is_sync);
+extern unsigned int oplus_display_brightness;
 
 static void oplus_bl_cmdq_cb(struct cmdq_cb_data data)
 {
@@ -526,9 +527,19 @@ EXPORT_SYMBOL(oplus_sync_panel_brightness);
 void oplus_sync_panel_brightness_video(struct drm_crtc *crtc, struct cmdq_pkt *cmdq_handle)
 {
 	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
+	static int aod_brightness = 0;
+	uint64_t hbm_enable = 0;
+	static bool last_aod_layer_status = false;
+	bool new_aod_layer_status = false;
+	struct mtk_crtc_state *states = to_mtk_crtc_state(crtc->state);
 
 	if (!crtc) {
 		DDPPR_ERR("sync_panel_brightness - find crtc fail\n");
+		return;
+	}
+
+	if(!states) {
+		DDPPR_ERR("state in null\n");
 		return;
 	}
 
@@ -549,8 +560,22 @@ void oplus_sync_panel_brightness_video(struct drm_crtc *crtc, struct cmdq_pkt *c
 	}
 #endif /* OPLUS_FEATURE_DISPLAY_ONSCREENFINGERPRINT */
 
+	hbm_enable = states->prop_val[CRTC_PROP_HBM_ENABLE];
+	new_aod_layer_status = hbm_enable & OPLUS_OFP_PROPERTY_AOD_LAYER;
 	if (!mtk_crtc->oplus_apollo_br->oplus_backlight_updated) {
-		return;
+		DDPINFO("%s: aod layer  property %llu\n", __func__, hbm_enable);
+		if(last_aod_layer_status && !new_aod_layer_status && oplus_display_brightness > 1) {
+			mtk_drm_setbacklight_without_lock_video(crtc, aod_brightness, 0, 0x1 << SET_BACKLIGHT_LEVEL, cmdq_handle);
+			last_aod_layer_status = new_aod_layer_status;
+			DDPMSG("%s: oplus_sync_panel_brightness_video send aod_brightness = %d\n", __func__, aod_brightness);
+			return;
+		} else {
+			return;
+		}
+	}
+	last_aod_layer_status = new_aod_layer_status;
+	if (mtk_crtc->oplus_apollo_br->oplus_pending_backlight > 1) {
+		aod_brightness = mtk_crtc->oplus_apollo_br->oplus_pending_backlight;
 	}
 
 	OPLUS_DSI_TRACE_BEGIN("sync_panel_brightness_video level(%d) sync(%d)", mtk_crtc->oplus_apollo_br->oplus_pending_backlight,

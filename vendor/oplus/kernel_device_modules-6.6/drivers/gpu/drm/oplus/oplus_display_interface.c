@@ -126,6 +126,22 @@ bool oplus_dsi_display_get_dp_support(void)
 	return value;
 }
 
+int oplus_dsi_panel_support_144hz(void *node_dev, void *lcm_ctx)
+{
+	int ret = 0;
+	struct dsi_panel_lcm *ctx = lcm_ctx;
+	struct device_node *node = node_dev;
+
+	if (!ctx || !node) {
+		OPLUS_DSI_ERR("invalid lcm_ctx or node\n");
+		return -EINVAL;
+	}
+
+	ctx->oplus_panel_support_144hz = of_property_read_bool(node, "oplus,panel-support-144hz");
+	OPLUS_DSI_INFO("oplus_panel_support_144hz = %s \n", ctx->oplus_panel_support_144hz ? "true" : "false");
+	return ret;
+}
+
 int oplus_panel_config_parse(struct device_node *node, void *ctx)
 {
 	int ret = 0;
@@ -139,7 +155,11 @@ int oplus_panel_config_parse(struct device_node *node, void *ctx)
 		OPLUS_DSI_ERR("skip probe due to oplus_dsi_panel_parse_cmd_params error\n");
 		return ret;
 	}
-
+	ret = oplus_dsi_panel_support_144hz(node, ctx);
+	if (ret < 0) {
+		OPLUS_DSI_ERR("oplus_dsi_panel_support_144hz failed\n");
+		return ret;
+	}
 	return 0;
 }
 

@@ -150,6 +150,32 @@
 				oplus,dsi-hbm-off-command = [
 					39 00 00 00 00 00 03 51 0D BB
 				];
+				oplus,dsi-lhbm-pressed-icon-on-command = [
+					39 00 00 40 00 00 06 F0 55 AA 52 08 08
+					39 00 00 40 00 00 02 6F 4A
+					39 00 00 40 00 00 0D A9 02 00 DF 31 31 06 01 00 87 00 00 05
+					39 00 00 40 00 00 06 F0 55 AA 52 08 04
+					39 00 00 40 00 00 02 CB 37
+					39 00 00 00 00 00 02 8B 10
+					39 00 00 40 00 00 06 F0 55 AA 52 08 00
+					39 00 00 40 00 00 02 6F 30
+					39 00 00 40 00 00 02 DF 00
+					39 00 00 40 00 00 02 6F 36
+					39 00 00 40 00 00 02 DF 01
+				];
+				oplus,dsi-lhbm-pressed-icon-on-pwm-command = [
+					39 00 00 40 00 00 06 F0 55 AA 52 08 08
+					39 00 00 40 00 00 02 6F 4A
+					39 00 00 40 00 00 0D A9 02 00 DF 31 31 16 01 00 87 00 00 25
+					39 00 00 40 00 00 06 F0 55 AA 52 08 04
+					39 00 00 40 00 00 02 CB 37
+					39 00 00 00 00 00 02 8B 10
+					39 00 00 40 00 00 06 F0 55 AA 52 08 00
+					39 00 00 40 00 00 02 6F 30
+					39 00 00 40 00 00 02 DF 00
+					39 00 00 40 00 00 02 6F 36
+					39 00 00 40 00 00 02 DF 01
+				];
 
 				oplus,dsi-timing-switch-command-state = "dsi_hs_mode";
 				oplus,dsi-on-command-state = "dsi_lp_mode";
@@ -157,6 +183,8 @@
 				oplus,dsi-panel-aod-off-insert-black-command-state = "dsi_ls_mode";
 				oplus,dsi-hbm-on-command-state = "dsi_hs_mode";
 				oplus,dsi-hbm-off-command-state = "dsi_hs_mode";
+				oplus,dsi-lhbm-pressed-icon-on-command-state = "dsi_hs_mode";
+				oplus,dsi-lhbm-pressed-icon-on-pwm-command-state = "dsi_hs_mode";
 				oplus,dsc-params-entries = <&dsc_params>;
 				//oplus,spr-params-entries = <&spr_params>;
 				oplus,phy-timcon {
@@ -338,6 +366,32 @@
 				oplus,dsi-hbm-off-command = [
 					39 00 00 00 00 00 03 51 0D BB
 				];
+				oplus,dsi-lhbm-pressed-icon-on-command = [
+					39 00 00 40 00 00 06 F0 55 AA 52 08 08
+					39 00 00 40 00 00 02 6F 4A
+					39 00 00 40 00 00 0D A9 02 00 DF 31 31 06 01 00 87 00 00 05
+					39 00 00 40 00 00 06 F0 55 AA 52 08 04
+					39 00 00 40 00 00 02 CB 37
+					39 00 00 00 00 00 02 8B 10
+					39 00 00 40 00 00 06 F0 55 AA 52 08 00
+					39 00 00 40 00 00 02 6F 30
+					39 00 00 40 00 00 02 DF 02
+					39 00 00 40 00 00 02 6F 36
+					39 00 00 40 00 00 02 DF 03
+				];
+				oplus,dsi-lhbm-pressed-icon-on-pwm-command = [
+					39 00 00 40 00 00 06 F0 55 AA 52 08 08
+					39 00 00 40 00 00 02 6F 4A
+					39 00 00 40 00 00 0D A9 02 00 DF 31 31 16 01 00 87 00 00 25
+					39 00 00 40 00 00 06 F0 55 AA 52 08 04
+					39 00 00 40 00 00 02 CB 37
+					39 00 00 00 00 00 02 8B 10
+					39 00 00 40 00 00 06 F0 55 AA 52 08 00
+					39 00 00 40 00 00 02 6F 30
+					39 00 00 40 00 00 02 DF 02
+					39 00 00 40 00 00 02 6F 36
+					39 00 00 40 00 00 02 DF 03
+				];
 
 				oplus,dsi-timing-switch-command-state = "dsi_hs_mode";
 				oplus,dsi-on-command-state = "dsi_lp_mode";
@@ -345,6 +399,8 @@
 				oplus,dsi-panel-aod-off-insert-black-command-state = "dsi_ls_mode";
 				oplus,dsi-hbm-on-command-state = "dsi_hs_mode";
 				oplus,dsi-hbm-off-command-state = "dsi_hs_mode";
+				oplus,dsi-lhbm-pressed-icon-on-command-state = "dsi_hs_mode";
+				oplus,dsi-lhbm-pressed-icon-on-pwm-command-state = "dsi_hs_mode";
 				oplus,dsc-params-entries = <&dsc_params>;
 				//oplus,spr-params-entries = <&spr_params>;
 				oplus,phy-timcon {
@@ -368,7 +424,7 @@
 						fhd-vfp = <52>;
 						fhd-vsa = <14>;
 						fhd-vbp = <22>;
-						hskew = <STANDARD_ADFR>;
+						hskew = <STANDARD_MFR>;
 					};
 					display-mode@1 {
 						hdisplay = <1080>;
@@ -379,7 +435,7 @@
 						fhd-vfp = <52>;
 						fhd-vsa = <14>;
 						fhd-vbp = <22>;
-						hskew = <STANDARD_ADFR>;
+						hskew = <STANDARD_MFR>;
 					};
 				};
 			};
@@ -528,6 +584,22 @@
 				oplus,dsi-hbm-off-command = [
 					39 00 00 00 00 00 03 51 0D BB
 				];
+				oplus,dsi-lhbm-pressed-icon-on-command = [
+					39 00 00 40 00 00 06 F0 55 AA 52 08 08
+					39 00 00 40 00 00 02 6F 4A
+					39 00 00 40 00 00 0D A9 02 00 DF 31 31 06 01 00 87 00 00 05
+					39 00 00 40 00 00 06 F0 55 AA 52 08 04
+					39 00 00 40 00 00 02 CB 37
+					39 00 00 00 00 00 02 8B 10
+				];
+				oplus,dsi-lhbm-pressed-icon-on-pwm-command = [
+					39 00 00 40 00 00 06 F0 55 AA 52 08 08
+					39 00 00 40 00 00 02 6F 4A
+					39 00 00 40 00 00 0D A9 02 00 DF 31 31 16 01 00 87 00 00 25
+					39 00 00 40 00 00 06 F0 55 AA 52 08 04
+					39 00 00 40 00 00 02 CB 37
+					39 00 00 00 00 00 02 8B 10
+				];
 
 				oplus,dsi-timing-switch-command-state = "dsi_hs_mode";
 				oplus,dsi-on-command-state = "dsi_lp_mode";
@@ -535,6 +607,8 @@
 				oplus,dsi-panel-aod-off-insert-black-command-state = "dsi_ls_mode";
 				oplus,dsi-hbm-on-command-state = "dsi_hs_mode";
 				oplus,dsi-hbm-off-command-state = "dsi_hs_mode";
+				oplus,dsi-lhbm-pressed-icon-on-command-state = "dsi_hs_mode";
+				oplus,dsi-lhbm-pressed-icon-on-pwm-command-state = "dsi_hs_mode";
 				oplus,dsc-params-entries = <&dsc_params>;
 				//oplus,spr-params-entries = <&spr_params>;
 				oplus,phy-timcon {
@@ -695,17 +769,45 @@
 					15 00 00 40 00 00 02 38 00
 					39 00 00 00 00 00 03 51 00 00
 				];
+				oplus,dsi-panel-aod-off-insert-black-command = [
+					39 00 00 40 00 00 06 F0 55 AA 52 08 00
+					39 00 00 40 00 00 02 C0 70
+					39 00 00 40 00 00 06 F0 55 AA 52 08 01
+					39 00 00 40 00 00 02 6F 01
+					39 00 00 40 00 00 02 D2 11
+					39 00 00 40 00 00 02 38 00
+					39 00 00 00 00 00 03 51 00 00
+				];
 				oplus,dsi-hbm-on-command = [
 					39 00 00 00 00 00 03 51 0F FF
 				];
 				oplus,dsi-hbm-off-command = [
 					39 00 00 00 00 00 03 51 0D BB
 				];
+				oplus,dsi-lhbm-pressed-icon-on-command = [
+					39 00 00 40 00 00 06 F0 55 AA 52 08 08
+					39 00 00 40 00 00 02 6F 4A
+					39 00 00 40 00 00 0D A9 02 00 DF 31 31 06 01 00 87 00 00 05
+					39 00 00 40 00 00 06 F0 55 AA 52 08 04
+					39 00 00 40 00 00 02 CB 37
+					39 00 00 00 00 00 02 8B 10
+				];
+				oplus,dsi-lhbm-pressed-icon-on-pwm-command = [
+					39 00 00 40 00 00 06 F0 55 AA 52 08 08
+					39 00 00 40 00 00 02 6F 4A
+					39 00 00 40 00 00 0D A9 02 00 DF 31 31 16 01 00 87 00 00 25
+					39 00 00 40 00 00 06 F0 55 AA 52 08 04
+					39 00 00 40 00 00 02 CB 37
+					39 00 00 00 00 00 02 8B 10
+				];
 
 				oplus,dsi-timing-switch-command-state = "dsi_hs_mode";
 				oplus,dsi-on-command-state = "dsi_lp_mode";
 				oplus,dsi-aod-off-command-state = "dsi_ls_mode";
+				oplus,dsi-panel-aod-off-insert-black-command-state = "dsi_ls_mode";
 				oplus,dsi-hbm-on-command-state = "dsi_hs_mode";
+				oplus,dsi-lhbm-pressed-icon-on-command-state = "dsi_hs_mode";
+				oplus,dsi-lhbm-pressed-icon-on-pwm-command-state = "dsi_hs_mode";
 				oplus,dsi-hbm-off-command-state = "dsi_hs_mode";
 				oplus,dsc-params-entries = <&dsc_params>;
 				//oplus,spr-params-entries = <&spr_params>;
@@ -772,7 +874,7 @@
 		oplus,backlight-check-disable;
 		oplus,demura-dbv-enable;
 		//oplus,emduty-dbv-cfg = <699 772 843 900 929 1153>;
-		oplus,demura-dbv-cfg = <1153 4094>;
+		oplus,demura-dbv-cfg = <1153>;
 		/* PWM config */
 		oplus,pwm-turbo-support = <0>; /* 0 not support, 1 with switch, 2 Global high frequency pwm without switch */
 		oplus,pwm-switch-backlight-threshold = <0x481>;
@@ -783,6 +885,7 @@
 		oplus,ofp-fp-local-hbm-calibration;
 		oplus,ofp-longrui-aod-config = <0x02>;
 		oplus,ofp-need-aod-off-insert-black-frame;
+		oplus,ofp-no-need-a-mirror-to-the-end;
 		/* ext_params */
 		oplus,panel-type = <2>;
 		oplus,keep_ulps = <1>;

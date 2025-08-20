@@ -2007,7 +2007,18 @@ bool is_ois_compensation(struct mtk_cam_job *job)
 
 	return res_raw_ois_compensation(&res->raw_res);
 }
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+bool is_buffer_increase(struct mtk_cam_job *job)
+{
+	struct mtk_cam_resource_v2 *res;
 
+	res = _get_job_res(job);
+	if (!res)
+		return false;
+
+	return res_raw_is_buffer_increase(&res->raw_res);
+}
+#endif
 bool is_rgbw(struct mtk_cam_job *job)
 {
 	return scen_is_rgbw(&job->job_scen);

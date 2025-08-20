@@ -110,6 +110,7 @@ struct dsi_panel_lcm {
 	struct oplus_panel_regs_check_config crc_config;
 	bool is_vidle_on;
 	struct vdo_aod_params *vdo_aod_config;
+	bool oplus_panel_support_144hz;
 };
 
 

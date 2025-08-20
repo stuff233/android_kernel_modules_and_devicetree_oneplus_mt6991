@@ -367,6 +367,7 @@ static int oplus_cpa_request_lock_vote_callback(struct votable *votable,
 						const char *client, bool step)
 {
 	struct oplus_cpa *cpa = data;
+	int rc;
 
 	if (votable == NULL) {
 		chg_err("votable is NUL\n");
@@ -403,7 +404,10 @@ static int oplus_cpa_request_lock_vote_callback(struct votable *votable,
 	mutex_lock(&cpa->cpa_request_lock);
 	cpa->def_req = true;
 	chg_info("start request default protocol\n");
-	protocol_identify_request(cpa, cpa->default_protocol_type);
+	rc = protocol_identify_request(cpa, cpa->default_protocol_type);
+	/* If setting protocol_to_be_switched fails, def_req should be set to false */
+	if (rc < 0 && rc != -EBUSY)
+		cpa->def_req = false;
 	mutex_unlock(&cpa->cpa_request_lock);
 
 	return 0;
@@ -669,7 +673,10 @@ static void oplus_cpa_chg_type_change_work(struct work_struct *work)
 					mutex_lock(&cpa->cpa_request_lock);
 					cpa->def_req = true;
 					chg_info("start request default protocol\n");
-					protocol_identify_request(cpa, cpa->default_protocol_type);
+					rc = protocol_identify_request(cpa, cpa->default_protocol_type);
+					/* If setting protocol_to_be_switched fails, def_req should be set to false */
+					if (rc < 0 && rc != -EBUSY)
+						cpa->def_req = false;
 					mutex_unlock(&cpa->cpa_request_lock);
 				}
 				break;
@@ -907,9 +914,8 @@ static void oplus_cpa_subscribe_wired_topic(struct oplus_mms *topic, void *prv_d
 	}
 
 	oplus_mms_get_item_data(cpa->wired_topic, WIRED_ITEM_ONLINE, &data, true);
-	cpa->wired_online = !!data.intval;
-	if (cpa->wired_online)
-		schedule_work(&cpa->chg_type_change_work);
+	if (data.intval)
+		schedule_work(&cpa->wired_online_work);
 	oplus_mms_get_item_data(cpa->wired_topic, WIRED_ITEM_PRESENT, &data, true);
 	cpa->wired_present = !!data.intval;
 	if (!cpa->wired_present)
@@ -1151,6 +1157,8 @@ static void oplus_cpa_retention_subs_callback(struct mms_subscribe *subs,
 			cpa->retention_state = !!data.intval;
 			if (cpa->retention_state)
 				cpa->pre_retention_state = cpa->retention_state;
+			if (cpa->wired_present && !cpa->retention_state)
+				cpa->pre_retention_state = false;
 			break;
 		case RETENTION_ITEM_STATE_READY:
 			cpa->retention_state_ready = true;

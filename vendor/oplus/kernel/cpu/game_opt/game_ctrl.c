@@ -9,6 +9,7 @@
 #include <linux/proc_fs.h>
 
 #include "game_ctrl.h"
+#include "dsu_freq.h"
 
 struct proc_dir_entry *game_opt_dir = NULL;
 struct proc_dir_entry *early_detect_dir = NULL;
@@ -37,12 +38,15 @@ static int __init game_ctrl_init(void)
 	}
 
 	cpu_load_init();
+	frame_load_init();
 	cpufreq_limits_init();
 	early_detect_init();
 	task_util_init();
 	rt_info_init();
 	fake_cpufreq_init();
 	debug_init();
+	dsu_freq_init();
+
 
 	return 0;
 }

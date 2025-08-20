@@ -340,9 +340,17 @@ static void group_init_tg_pointers(void)
 	struct cgroup_subsys_state *css = &root_task_group.css;
 	struct cgroup_subsys_state *top_css = css;
 
+#ifdef CONFIG_OPLUS_SCHED_GROUP_OPT
+	oplus_update_tg_map(top_css, true);
+#endif
+
 	rcu_read_lock();
-	css_for_each_child(css, top_css)
+	css_for_each_child(css, top_css) {
 		group_update_tg_pointer(css);
+#ifdef CONFIG_OPLUS_SCHED_GROUP_OPT
+		oplus_update_tg_map(css, true);
+#endif
+	}
 	rcu_read_unlock();
 }
 
@@ -389,7 +397,7 @@ static void group_android_rvh_cpu_cgroup_online(void *unused, struct cgroup_subs
 	group_update_tg_pointer(css);
 
 #ifdef CONFIG_OPLUS_SCHED_GROUP_OPT
-	oplus_update_tg_map(css);
+	oplus_update_tg_map(css, false);
 #endif
 }
 

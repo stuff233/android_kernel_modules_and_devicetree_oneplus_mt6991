@@ -13,6 +13,7 @@ enum {
 	CFBT_CONF_RESCUE_ENABLE = 0,
 	CFBT_CONF_STAGE_ENHANCE = 1,
 	CFBT_CONF_FRAME_ENHANCE = 2,
+	CFBT_CONF_SKIP_CPU      = 3,
 };
 
 #define MAX_USER_CFG_COUNT 6
@@ -114,5 +115,10 @@ int is_cfbt_enabled(void);
 
 void suspend_cfbt(int value);
 int is_cfbt_suspend(void);
+
+int get_skip_cpu_by_user_config(void);
+
+void set_cfbt_util_down(int value);
+int get_cfbt_util_down(void);
 
 #endif // CFBT_CONFIG_H

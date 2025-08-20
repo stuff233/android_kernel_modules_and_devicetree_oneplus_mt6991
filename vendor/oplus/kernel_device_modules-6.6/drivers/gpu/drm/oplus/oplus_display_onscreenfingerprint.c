@@ -153,6 +153,7 @@ bool oplus_ofp_video_mode_30hz_aod_accelerate_is_enabled(void)
                 return (bool)(OPLUS_OFP_GET_VIDEO_MODE_30HZ_AOD_CONFIG(p_oplus_ofp_params->fp_type));
         }
 }
+EXPORT_SYMBOL(oplus_ofp_video_mode_30hz_aod_accelerate_is_enabled);
 
 /* get fp_type value from panel dtsi */
 int oplus_ofp_init(void *node)
@@ -188,6 +189,9 @@ int oplus_ofp_init(void *node)
 
 	p_oplus_ofp_params->fp_local_hbm_calibration = of_property_read_bool(devnode, "oplus,ofp-fp-local-hbm-calibration");
 	OFP_INFO("fp_local_hbm_calibration:%d\n", p_oplus_ofp_params->fp_local_hbm_calibration);
+
+	p_oplus_ofp_params->no_need_a_mirror_to_the_end = of_property_read_bool(devnode, "oplus,ofp-no-need-a-mirror-to-the-end");
+	OFP_INFO("no_need_a_mirror_to_the_end:%d\n", p_oplus_ofp_params->no_need_a_mirror_to_the_end);
 
 	/* indicates whether video mode 30hz aod accelerate solution is set or not */
 	p_oplus_ofp_params->video_mode_30hz_aod_accelerate = of_property_read_bool(devnode, "oplus,ofp-video-mode-30hz-aod-accelerate");
@@ -414,6 +418,11 @@ bool oplus_ofp_a_mirror_to_the_end_aod_mode_is_enabled(void)
 		return false;
 	}
 
+	if(p_oplus_ofp_params->no_need_a_mirror_to_the_end) {
+		OFP_INFO("No need a-mirror-to-the-end\n");
+		return false;
+	}
+
 	if (!oplus_ofp_is_supported()) {
 		OFP_DEBUG("ofp is not support, a mirror to the end aod mode is also not supported\n");
 		return false;
@@ -562,6 +571,7 @@ int oplus_ofp_get_hbm_state(void)
 
 	return p_oplus_ofp_params->hbm_state;
 }
+EXPORT_SYMBOL(oplus_ofp_get_hbm_state);
 
 int oplus_ofp_set_hbm_state(bool hbm_state)
 {
@@ -2531,8 +2541,8 @@ int oplus_ofp_video_mode_aod_handle(void *drm_crtc, void *mtk_panel_ext, void *d
 	} else if (oplus_ofp_get_aod_state() && (refresh_rate != 30)) {
 		if (ext && ext->funcs && ext->funcs->oplus_doze_disable) {
 			OFP_INFO("debug for oplus_doze_disable\n");
-			oplus_ofp_aod_off_status_handle(mtk_crtc);
 			ext->funcs->oplus_doze_disable(drm_panel, mtk_dsi, dcs_write_gce, NULL);
+			oplus_ofp_set_aod_state(false);
 		}
 	}
 	last_refresh_rate = refresh_rate;
@@ -2556,7 +2566,6 @@ void oplus_ofp_aod_off_set_work_handler(struct work_struct *work_item)
 	if(oplus_ofp_video_mode_30hz_aod_accelerate_is_enabled()) {
 		oplus_ofp_aod_unlocking_update();
 		ret = mtk_ddic_vdo_aod_ctrl(0, true);
-		oplus_ofp_set_aod_state(false);
 		p_oplus_ofp_params->aod_off_cmd_timestamp = ktime_get();
 		OFP_DEBUG("aod_off_cmd_timestamp:%lld\n", ktime_to_ms(p_oplus_ofp_params->aod_off_cmd_timestamp));
 	} else
@@ -2710,6 +2719,11 @@ int oplus_ofp_aod_off_backlight_recovery(void *drm_crtc, void *mtk_crtc_state)
 	struct oplus_ofp_params *p_oplus_ofp_params = oplus_ofp_get_params();
 
 	OFP_DEBUG("start\n");
+
+	if(oplus_ofp_video_mode_30hz_aod_accelerate_is_enabled()) {
+		OFP_DEBUG("video panel not recovery backlight\n");
+		return rc;
+	}
 
 	if (!crtc || !state || !p_oplus_ofp_params) {
 		OFP_ERR("Invalid input params\n");

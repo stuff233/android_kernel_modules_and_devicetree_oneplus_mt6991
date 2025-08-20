@@ -207,6 +207,9 @@ int oplus_dsi_panel_parser_base(struct device_node *node, void *ext_param_dev, v
 	rc = utils->get_int(node, "oplus,vdo-per-frame-lp-enable", &ext_param->vdo_per_frame_lp_enable);
 	rc = utils->get_int(node, "oplus,change_fps_by_vfp_send_cmd", &ext_param->change_fps_by_vfp_send_cmd);
 	rc = utils->get_int(node, "oplus,change_fps_by_vfp_send_cmd_need_delay", &ext_param->change_fps_by_vfp_send_cmd_need_delay);
+	rc = utils->get_int(node, "oplus,esd-check-repeatedly-cnt", &ext_param->esd_check_repeatedly_cnt);
+	rc = utils->get_int(node, "oplus,oplus-esd-sleep-ms", &ext_param->oplus_esd_sleep_ms);
+	rc = utils->get_bool(node, "oplus,oplus-esd-sleep-status", &ext_param->oplus_esd_sleep_status);
 
 	return rc;
 }

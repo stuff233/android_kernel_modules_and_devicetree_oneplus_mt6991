@@ -115,6 +115,7 @@ struct oplus_ofp_params {
 	struct workqueue_struct *aod_off_set_wq;		/* send aod off cmd workqueue */
 	struct work_struct aod_off_set_work;			/* use to send aod off cmd to speed up aod unlocking */
 	bool fp_local_hbm_calibration;					/* use global hbm when fingerprint calibration */
+	bool no_need_a_mirror_to_the_end;					/* whether panel need a mirror to the end or not */
 	bool video_mode_30hz_aod_accelerate;			/* use video mode 30hz aod accelerate solution */
 };
 

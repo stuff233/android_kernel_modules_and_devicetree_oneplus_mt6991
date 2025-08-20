@@ -407,28 +407,29 @@ static void mtk_set_cpus_allowed_ptr(void *data, struct task_struct *p,
 	struct rq_flags rf;
 	struct cpumask *kernel_allowed_mask = &((struct mtk_task *) p->android_vendor_data1)->kernel_allowed_mask;
 	struct rq *rq = task_rq_lock(p, &rf);
-	cpumask_t new_mask;
+	cpumask_t user_mask;
 
 	// not set or invalid cpu mask
 	if (cpumask_empty(kernel_allowed_mask)){
 		goto out;
 	}
 
+	cpumask_copy(&user_mask, ctx->new_mask);
+
 	if (p->user_cpus_ptr &&
-		!(ctx->flags & (SCA_USER | SCA_MIGRATE_ENABLE | SCA_MIGRATE_DISABLE)) &&
-		cpumask_and(rq->scratch_mask, ctx->new_mask, p->user_cpus_ptr)) {
+		!(ctx->flags & (SCA_MIGRATE_ENABLE | SCA_MIGRATE_DISABLE)) &&
+		!((ctx->flags & SCA_USER) && (current->tgid != p->tgid))) {
 		*skip_user_ptr = true;
 		cpumask_copy(rq->scratch_mask, kernel_allowed_mask);
 		ctx->new_mask = rq->scratch_mask;
-		}
-	if (trace_sched_skip_user_enabled() && p->user_cpus_ptr && !cpumask_empty(kernel_allowed_mask)){
-		cpumask_copy(&new_mask, ctx->new_mask);
-		trace_sched_skip_user(p, *skip_user_ptr, p->user_cpus_ptr, kernel_allowed_mask, &new_mask);
+	}
+	if (trace_sched_skip_user_enabled() && p->user_cpus_ptr && !cpumask_empty(kernel_allowed_mask)) {
+		trace_sched_skip_user(p, *skip_user_ptr, &user_mask, kernel_allowed_mask, ctx->new_mask);
 	}
 
 out:
-		task_rq_unlock(rq, p, &rf);
-		return;
+	task_rq_unlock(rq, p, &rf);
+	return;
 }
 
 #if IS_ENABLED(CONFIG_MTK_IRQ_MONITOR_DEBUG)

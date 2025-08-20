@@ -144,7 +144,7 @@ static void rlmFillVhtOpNotificationIE(struct ADAPTER *prAdapter,
 static void rlmOpModeTxDoneHandler(struct ADAPTER *prAdapter,
 				   struct MSDU_INFO *prMsduInfo,
 				   uint8_t ucOpChangeType,
-				   u_int8_t fgIsSuccess);
+				   enum ENUM_TX_RESULT_CODE rTxDoneStatus);
 static void rlmApGoOmiOpModeDoneHandler(struct ADAPTER *prAdapter,
 					struct MSDU_INFO *prMsduInfo);
 static void rlmChangeOwnOpInfo(struct ADAPTER *prAdapter,
@@ -8553,18 +8553,8 @@ uint32_t rlmNotifyVhtOpModeTxDone(struct ADAPTER *prAdapter,
 				  struct MSDU_INFO *prMsduInfo,
 				  enum ENUM_TX_RESULT_CODE rTxDoneStatus)
 {
-	u_int8_t fgIsSuccess = FALSE;
-
-	do {
-		ASSERT((prAdapter != NULL) && (prMsduInfo != NULL));
-
-		if (rTxDoneStatus == TX_RESULT_SUCCESS)
-			fgIsSuccess = TRUE;
-
-	} while (FALSE);
-
 	rlmOpModeTxDoneHandler(prAdapter, prMsduInfo, OP_NOTIFY_TYPE_VHT_NSS_BW,
-			       fgIsSuccess);
+			       rTxDoneStatus);
 
 	return WLAN_STATUS_SUCCESS;
 }
@@ -8582,18 +8572,8 @@ uint32_t rlmNotifyOMIOpModeTxDone(struct ADAPTER *prAdapter,
 				  struct MSDU_INFO *prMsduInfo,
 				  enum ENUM_TX_RESULT_CODE rTxDoneStatus)
 {
-	u_int8_t fgIsSuccess = FALSE;
-
-	do {
-		ASSERT((prAdapter != NULL) && (prMsduInfo != NULL));
-
-		if (rTxDoneStatus == TX_RESULT_SUCCESS)
-			fgIsSuccess = TRUE;
-
-	} while (FALSE);
-
 	rlmOpModeTxDoneHandler(prAdapter, prMsduInfo, OP_NOTIFY_TYPE_OMI_NSS_BW,
-		fgIsSuccess);
+		rTxDoneStatus);
 
 	return WLAN_STATUS_SUCCESS;
 }
@@ -8638,18 +8618,8 @@ uint32_t rlmSmPowerSaveTxDone(struct ADAPTER *prAdapter,
 			      struct MSDU_INFO *prMsduInfo,
 			      enum ENUM_TX_RESULT_CODE rTxDoneStatus)
 {
-	u_int8_t fgIsSuccess = FALSE;
-
-	do {
-		ASSERT((prAdapter != NULL) && (prMsduInfo != NULL));
-
-		if (rTxDoneStatus == TX_RESULT_SUCCESS)
-			fgIsSuccess = TRUE;
-
-	} while (FALSE);
-
 	rlmOpModeTxDoneHandler(prAdapter, prMsduInfo, OP_NOTIFY_TYPE_HT_NSS,
-			       fgIsSuccess);
+			       rTxDoneStatus);
 
 	return WLAN_STATUS_SUCCESS;
 }
@@ -8667,18 +8637,8 @@ uint32_t rlmNotifyChannelWidthtTxDone(struct ADAPTER *prAdapter,
 				      struct MSDU_INFO *prMsduInfo,
 				      enum ENUM_TX_RESULT_CODE rTxDoneStatus)
 {
-	u_int8_t fgIsSuccess = FALSE;
-
-	do {
-		ASSERT((prAdapter != NULL) && (prMsduInfo != NULL));
-
-		if (rTxDoneStatus == TX_RESULT_SUCCESS)
-			fgIsSuccess = TRUE;
-
-	} while (FALSE);
-
 	rlmOpModeTxDoneHandler(prAdapter, prMsduInfo, OP_NOTIFY_TYPE_HT_BW,
-			       fgIsSuccess);
+			       rTxDoneStatus);
 
 	return WLAN_STATUS_SUCCESS;
 }
@@ -8695,7 +8655,7 @@ uint32_t rlmNotifyChannelWidthtTxDone(struct ADAPTER *prAdapter,
 static void rlmOpModeTxDoneHandler(struct ADAPTER *prAdapter,
 				   struct MSDU_INFO *prMsduInfo,
 				   uint8_t ucOpChangeType,
-				   u_int8_t fgIsSuccess)
+				   enum ENUM_TX_RESULT_CODE rTxDoneStatus)
 {
 	uint32_t u4Status = WLAN_STATUS_SUCCESS;
 	struct BSS_INFO *prBssInfo = NULL;
@@ -8703,6 +8663,7 @@ static void rlmOpModeTxDoneHandler(struct ADAPTER *prAdapter,
 	u_int8_t fgIsOpModeChangeSuccess = FALSE; /* OP change result */
 	uint8_t *pucCurrOpState = NULL;
 	uint8_t ucFailCnt = 0, i = 0;
+	u_int8_t fgIsSuccess = FALSE;
 
 	/* Sanity check */
 	ASSERT((prAdapter != NULL) && (prMsduInfo != NULL));
@@ -8714,6 +8675,9 @@ static void rlmOpModeTxDoneHandler(struct ADAPTER *prAdapter,
 	prStaRec = prBssInfo->prStaRecOfAP;
 	if (!prStaRec)
 		return;
+
+	if (rTxDoneStatus == TX_RESULT_SUCCESS)
+		fgIsSuccess = TRUE;
 
 	DBGLOG(RLM, INFO,
 	       "OP notification Tx done: BSS[%d] Type[%d] Status[%d] IsSuccess[%d]\n",
@@ -8766,6 +8730,10 @@ static void rlmOpModeTxDoneHandler(struct ADAPTER *prAdapter,
 				return;
 			}
 		} else {
+			/* Reduce useless retry to prevent long cnm req lock */
+			if (rTxDoneStatus == TX_RESULT_FLUSHED)
+				break;
+
 			/* Record rollback frame status to fail only */
 			if (prBssInfo->aucOpModeChangeState[ucOpChangeType]
 				== OP_NOTIFY_STATE_ROLLBACK) {

@@ -21838,10 +21838,6 @@ connsys_emi_config_hyp: connsys-emi-config-hyp {
 	regulator-min-microvolt = <0>;
 };
 
-&mt6373_vrfio18_aif {
-	regulator-always-on;
-};
-
 /delete-node/ &mt6363_vbuck1_sshub;
 /delete-node/ &mt6363_vbuck2_sshub;
 /delete-node/ &mt6363_vbuck4_sshub;

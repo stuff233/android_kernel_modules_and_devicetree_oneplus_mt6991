@@ -576,7 +576,7 @@
 		oplus_spec,vbatt-ov-thr-mv = <4600>;
 
 		oplus_spec,full_pre_ffc_judge;
-		oplus_spec,full-pre-ffc-mv = <4495>;
+		oplus_spec,full-pre-ffc-mv = <4530>;
 		oplus_spec,ffc-temp-thr = <120 210 350 440>;
 		oplus_spec,wired-ffc-step-max = <2>;
 		oplus_spec,wired-ffc-fv-mv = <4630 4630>;
@@ -756,7 +756,6 @@
 		oplus,cp_ic = <&oplus_virtual_cp>;
 		oplus,dpdm_switch_ic = <&oplus_virtual_dpdm_switch>;
 
-		oplus,ufcs_boot_time_retry = <10>;
 		oplus,impedance_unit = <&oplus_ufcs_impedance_unit>;
 		oplus,ufcs_need_reset_adapter;
 
@@ -1386,7 +1385,7 @@
 								11000 4330 1000 0 0
 								11000 4560 900 0 0
 								11000 4570 500 1 0>;
-				strategy_temp_little_cool =	<11000 4650 1500 0 0
+				strategy_temp_little_cool =	<11000 4560 1500 0 0
 								11000 4560 1000 0 0
 								11000 4570 600 1 0>;
 				strategy_temp_little_cool_high = <11000 4560 1500 0 0

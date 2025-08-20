@@ -29,6 +29,8 @@
 #define USB_TYPE_POLLING_CNT_MAX	100
 #define BC12_TIMEOUT_MS			1500
 #define MICRO_5V 			5000
+#define VBUS_5V			5000
+#define VBUS_9V			9000
 
 enum dr {
 	DR_IDLE,
@@ -144,8 +146,19 @@ static void tcpc_set_voltage_max_and_min(struct pd_manager_chip *chip, int max, 
 
 static void tcpc_set_current_max(struct pd_manager_chip *chip, int max)
 {
-	if (chip->current_max_ma == max)
+	struct votable *icl_votable;
+	int icl_tmp_ma = 0;
+
+	icl_votable = find_votable("WIRED_ICL");
+	if (!icl_votable)
+		chg_err("WIRED_ICL votable not found\n");
+	else
+		icl_tmp_ma = get_client_vote(icl_votable, MAX_VOTER);
+
+	if (chip->current_max_ma == max && icl_tmp_ma <= max && icl_tmp_ma > 0) {
+		chg_info("current_max_ma = %d\n", icl_tmp_ma);
 		return;
+	}
 	chg_info("current_max_ma = %d\n", max);
 	chip->current_max_ma = max;
 	oplus_chg_ic_virq_trigger(chip->ic_dev, OPLUS_IC_VIRQ_CURRENT_CHANGED);
@@ -1059,6 +1072,16 @@ static int oplus_pdc_setup(struct pd_manager_chip *chip, int *vbus_mv, int *ibus
 	int ibus_ma_t = 0;
 	struct tcpc_device *tcpc = chip->tcpc;
 
+	if (*vbus_mv == VBUS_5V)
+		ret = tcpm_set_pd_charging_policy(tcpc, DPM_CHARGING_POLICY_VSAFE5V, NULL);
+	else
+		ret = tcpm_set_pd_charging_policy(tcpc, DPM_CHARGING_POLICY_MAX_POWER_LVIC, NULL);
+
+	if (ret != TCPM_SUCCESS) {
+		chg_err("tcpm_set_apdo_charging_policy fail\n");
+		return -EINVAL;
+	}
+
 	ret = tcpm_dpm_pd_request(tcpc, *vbus_mv, *ibus_ma, NULL);
 	if (ret != TCPM_SUCCESS) {
 		chg_err("tcpm_dpm_pd_request fail, rc=%d\n", ret);
@@ -1125,18 +1148,19 @@ static int oplus_pdo_select(struct pd_manager_chip *chip, int vbus_mv, int ibus_
 					ibus = pd_cap.ma[i];
 					if (ibus > ibus_ma)
 						ibus = ibus_ma;
-					break;
+					goto out;
 				}
 				chg_info("%d mv:[%d,%d] type:%d %d\n", i,
 					 pd_cap.min_mv[i], pd_cap.max_mv[i],
 					 pd_cap.ma[i], pd_cap.type[i]);
 			}
+			return -EINVAL;
 		}
 	} else {
 		vbus = 5000;
 		ibus = 2000;
 	}
-
+out:
 	return oplus_pdc_setup(chip, &vbus, &ibus);
 }
 

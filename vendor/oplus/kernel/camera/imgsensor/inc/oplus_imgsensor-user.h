@@ -27,6 +27,12 @@ struct oplus_sensor_hw_mode
 	__u8 *p_hw_mode;
 };
 
+struct oplus_sensor_buffer_increase
+{
+	__u32 sensor_mode;
+	__u8 *p_buffer_increase;
+};
+
 struct oplus_eeprom_info_struct
 {
 	__u16 sensorid_offset;
@@ -69,6 +75,9 @@ struct oplus_sensor_setting_info {
 
 #define VIDIOC_MTK_G_SENSOR_HWMODE \
 	_IOWR('M', BASE_VIDIOC_PRIVATE + 67, struct oplus_sensor_hw_mode)
+
+#define VIDIOC_MTK_G_BUFFER_INCREASE \
+	_IOWR('M', BASE_VIDIOC_PRIVATE + 68, struct oplus_sensor_buffer_increase)
 
 #define VIDIOC_MTK_S_CALIBRATION_EEPROM \
 	_IOW('M', BASE_VIDIOC_PRIVATE + 120, ACDK_SENSOR_ENGMODE_STEREO_STRUCT)

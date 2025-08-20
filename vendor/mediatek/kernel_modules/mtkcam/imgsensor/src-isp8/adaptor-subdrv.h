@@ -294,6 +294,7 @@ struct subdrv_mode_struct {
 #ifdef OPLUS_FEATURE_CAMERA_COMMON
 	struct SENSOR_SETTING_INFO_STRUCT sensor_setting_info;
 	u8 hw_mode;//2:DC MODE, 1:OTF MODE, 0:defalut
+	u8 buffer_increase;// 1:need increase, 0:no increase
 #endif /*OPLUS_FEATURE_CAMERA_COMMON*/
 };
 

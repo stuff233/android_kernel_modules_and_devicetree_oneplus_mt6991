@@ -167,8 +167,7 @@ static int get_mode_enum(struct drm_display_mode *m)
 	} else if (m_vrefresh == 120 && m->hskew == OPLUS_ADFR) {
 		ret = FHD_OPLUS120;
 	} else if (m_vrefresh == 144 && m->hskew == STANDARD_ADFR) {
-		/* Without adfr, returning 4 will cause a frame rate mismatch */
-		ret = FHD_SDC144 - 1;
+		ret = FHD_SDC144;
 	} else if (m_vrefresh == 30 && m->hskew == STANDARD_ADFR) {
 		ret = FHD_SDC30;
 	}
@@ -1055,7 +1054,7 @@ static int oplus_ofp_set_lhbm_pressed_icon(struct drm_panel *panel, void *dsi_dr
 	} else {
 		cmd_set_id = DSI_CMD_LHBM_PRESSED_ICON_OFF;
 	}
-	if ((mtk_dsi->mode_flags & MIPI_DSI_MODE_VIDEO) && !lhbm_pressed_icon_on) {
+	if ((mtk_dsi->mode_flags & MIPI_DSI_MODE_VIDEO) && !lhbm_pressed_icon_on && !handle) {
 		oplus_dsi_panel_send_cmd(dsi_drv, cmd_set_id, handle, DSI_CMD_FUNC_GCE2);
 	} else
 		oplus_dsi_panel_send_cmd(dsi_drv, cmd_set_id, handle, DSI_CMD_FUNC_DEFAULT);
@@ -1166,6 +1165,14 @@ static int panel_doze_enable(struct drm_panel *panel, void *dsi, dcs_write_gce_p
 		return -EINVAL;
 	}
 
+	if(oplus_ofp_video_mode_30hz_aod_accelerate_is_enabled() && oplus_ofp_get_hbm_state()) {
+		if (handle)
+			oplus_dsi_panel_send_cmd(dsi, DSI_CMD_LHBM_PRESSED_ICON_OFF, handle, DSI_CMD_FUNC_DEFAULT);
+		else
+			oplus_dsi_panel_send_cmd(dsi, DSI_CMD_LHBM_PRESSED_ICON_OFF, handle, DSI_CMD_FUNC_GCE2);
+		OFP_INFO("should off hbm in aod\n");
+	}
+
 	OFP_INFO("crtc_active:%d, doze_active:%llu\n", crtc->state->active, mtk_state->prop_val[CRTC_PROP_DOZE_ACTIVE]);
 	if (handle)
 		oplus_dsi_panel_send_cmd(dsi, DSI_CMD_SET_LP1, handle, DSI_CMD_FUNC_DEFAULT);
@@ -1217,10 +1224,26 @@ static int panel_set_ultra_low_power_aod(struct drm_panel *panel, void *dsi,
 	return 0;
 }
 
+static struct vdo_aod_params vdo_aod_to_120hz = {
+	.porch_change_flag = 0x03,
+	.dst_hfp = 60,
+	.dst_vfp = 84,
+	.vdo_aod_cmd_table[0]={1, {0x38}},
+	.vdo_aod_cmd_table[1]={3, {0x51, 0x00, 0x00}},
+};
+
+static struct vdo_aod_params vdo_aod_to_60hz = {
+	.porch_change_flag = 0x03,
+	.dst_hfp = 60,
+	.dst_vfp = 2996,
+	.vdo_aod_cmd_table[0]={1, {0x38}},
+	.vdo_aod_cmd_table[1]={3, {0x51, 0x00, 0x00}},
+};
 static int mtk_get_vdo_aod_param(int aod_en, struct drm_display_mode *m,
 					struct drm_panel *panel, struct vdo_aod_params **vdo_aod_param)
 {
 	struct dsi_panel_lcm *ctx = panel_to_lcm(panel);
+	static int mode_id_before_aod = 0;
 	unsigned int mode_id = 0;
 	int refreash;
 
@@ -1228,17 +1251,28 @@ static int mtk_get_vdo_aod_param(int aod_en, struct drm_display_mode *m,
 	refreash =  drm_mode_vrefresh(m);
 
 	OFP_INFO("%s:++, mode_id %d, ref %d\n", __func__, mode_id, refreash);
-	if(aod_en)
+	if(aod_en) {
 		*vdo_aod_param = &ctx->vdo_aod_config[0];
-	else {
-		if(mode_id == 0)
-			*vdo_aod_param = &ctx->vdo_aod_config[3];
-		else if (mode_id == 1)
+		mode_id_before_aod = mode_id;
+	} else {
+		if(mode_id_before_aod == FHD_SDC60) {
+			if(oplus_ofp_get_aod_unlocking()) {
+				*vdo_aod_param = &vdo_aod_to_60hz;
+			} else {
+				*vdo_aod_param = &ctx->vdo_aod_config[3];
+			}
+		}
+		else if (mode_id_before_aod == FHD_SDC90)
 			*vdo_aod_param = &ctx->vdo_aod_config[2];
-		else
-			*vdo_aod_param = &ctx->vdo_aod_config[1];
+		else {
+			if(oplus_ofp_get_aod_unlocking()) {
+				*vdo_aod_param = &vdo_aod_to_120hz;
+			} else {
+				*vdo_aod_param = &ctx->vdo_aod_config[1];
+			}
+		}
 	}
-	OFP_INFO("%s:aod_en %d\n", __func__, aod_en);
+	OFP_INFO("%s:aod_en %d, unlocking =%d\n", __func__, aod_en, oplus_ofp_get_aod_unlocking());
 	return 0;
 }
 #endif /* OPLUS_FEATURE_DISPLAY_ONSCREENFINGERPRINT */
@@ -1314,7 +1348,7 @@ struct drm_display_mode *get_mode_by_id(struct drm_connector *connector,
 	struct mtk_dsi *dsi = container_of(connector, struct mtk_dsi, conn);
 	struct dsi_panel_lcm *ctx = panel_to_lcm(dsi->panel);
 
-	if (project_is_emira()) {
+	if (project_is_emira() || ctx->oplus_panel_support_144hz) {
 		/* not to do */
 	} else {
 		mode = (mode % ctx->mode_num);
@@ -1351,7 +1385,10 @@ static int mtk_panel_ext_param_get(struct drm_panel *panel,
 	} else if (m_vrefresh == 144 && m->hskew == STANDARD_ADFR) {
 		*ext_param = &(ctx->ext_params_all[3]);
 	} else if (m_vrefresh == 30 && m->hskew == STANDARD_ADFR) {
-		*ext_param = &(ctx->ext_params_all[4]);
+		if (oplus_ofp_video_mode_30hz_aod_accelerate_is_enabled())
+			*ext_param = &(ctx->ext_params_all[3]);
+		else
+			*ext_param = &(ctx->ext_params_all[4]);
 	} else {
 		*ext_param = &(ctx->ext_params_all[0]);
 	}
@@ -1398,7 +1435,10 @@ static int mtk_panel_ext_param_set(struct drm_panel *panel,
 	} else if (m_vrefresh == 144 && m->hskew == STANDARD_ADFR) {
 		ext->params = &(ctx->ext_params_all[3]);
 	} else if (m_vrefresh == 30 && m->hskew == STANDARD_ADFR) {
-		ext->params = &(ctx->ext_params_all[4]);
+		if (oplus_ofp_video_mode_30hz_aod_accelerate_is_enabled())
+			ext->params = &(ctx->ext_params_all[3]);
+		else
+			ext->params = &(ctx->ext_params_all[4]);
 	} else {
 		ext->params = &(ctx->ext_params_all[0]);
 	}

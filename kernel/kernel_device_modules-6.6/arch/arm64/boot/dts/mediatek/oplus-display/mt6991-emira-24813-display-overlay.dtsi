@@ -29,6 +29,7 @@
 	status = "okay";
 	#address-cells = <1>;
 	#size-cells = <0>;
+	cpu-num = <3>;
 	/* choose second panel which support spr */
 	//switch-spr = <1>;
 	/* choose MTK SPR IP */

@@ -35,11 +35,13 @@
  * number of control steps.
  */
 #define GT9764_MOVE_STEPS			50
+#define GT9764_MOVE_STEPS_100			100
 #define GT9764_MOVE_DELAY_US			5000
 
 #define VIDIOC_MTK_SET_LOCK        _IOWR('V', BASE_VIDIOC_PRIVATE + 6, int)
 
 static bool firstPowerOn = false;
+static bool isVibration = false;
 
 /* gt9764 device structure */
 struct gt9764_device {
@@ -75,6 +77,10 @@ static int gt9764_set_position(struct gt9764_device *gt9764, u16 val)
 
 	if(firstPowerOn) {
 		int ret;
+		int diff_dac = 0;
+		int nStep_count = 0;
+		int i = 0;
+
 		LOG_INF("init +\n");
 		ret = i2c_smbus_read_byte_data(client, 0x00);
 		LOG_INF("Check HW version: %x\n", ret);
@@ -86,6 +92,21 @@ static int gt9764_set_position(struct gt9764_device *gt9764, u16 val)
 		i2c_smbus_write_byte_data(client, 0x07, 0x02);
 		firstPowerOn = false;
 
+		nStep_count = val / GT9764_MOVE_STEPS_100;
+
+		for (i = 0; i < nStep_count; ++i) {
+			diff_dac += GT9764_MOVE_STEPS_100;
+			ret = i2c_smbus_write_word_data(client, GT9764_SET_POSITION_ADDR,
+						swab16(diff_dac));
+			if (ret) {
+				LOG_INF("%s I2C failure: %d",
+					__func__, ret);
+				return ret;
+			}
+			usleep_range(GT9764_MOVE_DELAY_US,
+					GT9764_MOVE_DELAY_US + 1000);
+		}
+
 		LOG_INF("init -\n");
 	}
 
@@ -95,6 +116,11 @@ static int gt9764_set_position(struct gt9764_device *gt9764, u16 val)
 
 static int gt9764_release(struct gt9764_device *gt9764)
 {
+	if (isVibration) {
+		LOG_INF("isVibration is true,release out");
+		isVibration = false;
+		return 0;
+	}
 	int ret, val;
 	int diff_dac = 0;
 	int nStep_count = 0;
@@ -262,27 +288,20 @@ static int gt9764v_set_lock(struct gt9764_device *gt9764, void *arg)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(&gt9764->sd);
 	int *val = (int *)arg;
-	int val1 = 170;  //(val1/1023)*120 = 20ma
+	int val1 = 0x019A;  //512 - (20*511/100) = 20ma
 	LOG_INF("setvibration lock in val:%d", *val);
 	if (*val == 1) {
 		LOG_INF("setvibration lock");
 		i2c_smbus_write_byte_data(client, 0x02, 0x00);
-		i2c_smbus_write_byte_data(client, 0x0B, 0x12);
+		i2c_smbus_write_byte_data(client, 0x0B, 0x02);
 		i2c_smbus_write_byte_data(client, 0x02, 0x02);
 		i2c_smbus_write_byte_data(client, 0x06, 0x40);
 		i2c_smbus_write_byte_data(client, 0x07, 0x02);
 		i2c_smbus_write_word_data(client, GT9764_SET_POSITION_ADDR,
 				swab16(val1));
+		isVibration = true;
 	} else if (*val == 0){
-		LOG_INF("setvibration unlock in");
-		val1 = 150;
-		while (val1 > 0){
-			i2c_smbus_write_word_data(client, GT9764_SET_POSITION_ADDR,
-					swab16(val1));
-			val1 = val1 - 2;
-			usleep_range(1000, 1100);
-		}
-		LOG_INF("setvibration unlock out");
+		LOG_INF("setvibration unlock");
 	} else {
 		LOG_INF("setvibration error");
 	}

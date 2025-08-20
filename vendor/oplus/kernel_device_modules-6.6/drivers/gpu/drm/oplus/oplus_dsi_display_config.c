@@ -53,6 +53,7 @@ unsigned int m_db;
 EXPORT_SYMBOL(m_db);
 unsigned int m_dc;
 EXPORT_SYMBOL(m_dc);
+extern int get_project(void);
 
 int oplus_dsi_panel_parse_vdo_param(struct device_node *node, void *ctx_dev);
 
@@ -230,6 +231,10 @@ int oplus_dsi_panel_parse_timing_param(void *timing_dev, void *ctx_dev, int type
 		cell_index = 3;
 	} else if ((type == 0) && (vrefresh == 30)) {
 		cell_index = 4;
+		if (24069 == get_project() || 24297 == get_project()) {
+			cell_index = 3;
+			OPLUS_DSI_ERR("for whithout 144hz index %d\n", cell_index);
+                }
 	}
 	node = of_parse_phandle(timing, "oplus,dsc-params-entries", 0);
 	if (node) {

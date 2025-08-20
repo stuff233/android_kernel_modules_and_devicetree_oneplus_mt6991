@@ -56,6 +56,10 @@
 #define V4L2_MTK_CAM_TG_FLASH_MODE_CONTINUOUS 1
 #define V4L2_MTK_CAM_TG_FLASH_MODE_MULTIPLE 2
 
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
+#define OPLUS_FEATURE_CAMERA_COMMON
+#endif
+
 struct mtk_cam_shutter_gain {
 	__u32 shutter;
 	__u32 gain;
@@ -235,6 +239,9 @@ struct mtk_cam_resource_raw_v2 {
 	__u8 sen_apply_ctrl;
 	__u64 sen_deadline_ns;
 	__u8 ois_compensation;
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	__u8 buffer_increase;
+#endif
 };
 
 struct mtk_cam_resource_v2 {

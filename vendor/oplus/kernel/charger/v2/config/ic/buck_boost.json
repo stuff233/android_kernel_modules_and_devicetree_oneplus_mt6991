@@ -1326,8 +1326,40 @@
                     }
                 }
             }
+        },
+        {
+            "lable": "OPLUS_IC_FUNC_BUCK_SET_FLASH_MODE",
+            "desc": {
+                "zh": "设置高压打闪模式"
+            },
+            "auto_debug_code": true,
+            "parameter_list": ["bool"],
+            "parameter_desc": [
+                {
+                    "range": "0-1",
+                    "type": "in",
+                    "desc": {
+                        "zh": "1: 高压打闪模式, 0: 非高压打闪模式"
+                    }
+                }
+            ],
+            "vict": {
+                "read": false,
+                "write": {
+                    "cmd": "vict -f {id} -S{val} vic-*",
+                    "desc": {
+                        "zh": "N/A"
+                    }
+                },
+                "overwrite": {
+                    "cmd": "vict -f {id} -O {val} vic-*",
+                    "desc": {
+                        "zh": "N/A"
+                    }
+                }
+            }
         }
     ],
 
-    "version": "V2.3:47:e1275e5df36010c455e16271cf1ce152893fe17d03b56f87a86e56e8027958b7"
+    "version": "V2.4:48:c7994cffa768028306890fd8b50e121a31af02ae4a94398dddafb7836e115e50"
 }

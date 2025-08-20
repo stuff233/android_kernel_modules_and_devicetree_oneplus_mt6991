@@ -167,29 +167,6 @@ def define_oplus_local_modules():
     )
 
     define_oplus_ddk_module(
-        name = "oplus_camera_dw9786",
-        srcs = native.glob([
-            "**/*.h",
-            "lens/ois/dw9786/adaptor-i2c.c",
-            "lens/ois/dw9786/dw9786af.c",
-        ]),
-        ko_deps = ["//vendor/mediatek/kernel_modules/mtkcam/cam_cal/src_v4l2/custom:mtk_cam_cal",],
-        includes = ["."],
-    )
-
-    define_oplus_ddk_module(
-        name = "oplus_camera_ois_dw9786",
-        srcs = native.glob([
-            "**/*.h",
-            "lens/ois/ois_dw9786/adaptor-i2c.c",
-            "lens/ois/ois_dw9786/dw9786_if.c",
-            "lens/ois/ois_dw9786/dw9786.c",
-        ]),
-        ko_deps = ["//vendor/mediatek/kernel_modules/mtkcam/cam_cal/src_v4l2/custom:mtk_cam_cal",],
-        includes = ["."],
-    )
-
-    define_oplus_ddk_module(
         name = "oplus_camera_aw36515_brza",
         srcs = native.glob([
             "**/*.h",
@@ -259,8 +236,6 @@ def define_oplus_local_modules():
             "oplus_camera_ak7316t",
             "oplus_camera_ak7316t33",
             "oplus_camera_jd5516w",
-            "oplus_camera_dw9786",
-            "oplus_camera_ois_dw9786",
             "oplus_camera_ois_power",
             "oplus_camera_tof8801",
             "oplus_camera_jd5516we4",

@@ -3014,10 +3014,12 @@ end:
 }
 #endif /* CFG_SUPPORT_PDMA_SCATTER */
 
-void kalCheckRxDmadAddr(struct RTMP_DMACB *pRxCell,
+static u_int8_t kalCheckRxDmadAddr(struct GLUE_INFO *prGlueInfo,
+	struct RTMP_DMACB *pRxCell,
 	struct RXD_STRUCT *pRxD, struct RTMP_DMABUF *prDmaBuf)
 {
 	uint64_t u8Addr = 0;
+	struct ADAPTER *prAdapter = NULL;
 
 	u8Addr = pRxD->SDPtr0;
 #ifdef CONFIG_PHYS_ADDR_T_64BIT
@@ -3025,12 +3027,17 @@ void kalCheckRxDmadAddr(struct RTMP_DMACB *pRxCell,
 			DMA_BITS_OFFSET;
 #endif
 	if (u8Addr != (uint64_t)prDmaBuf->AllocPa) {
-		DBGLOG(HAL, ERROR, "Dump RXDMAD PA[0x%llx]!=[0x%llx]:\n",
+		DBGLOG(HAL, ERROR,
+			"Dump RXDMAD PA[0x%llx]!=[0x%llx]: Trigger SER\n",
 			u8Addr, (uint64_t)prDmaBuf->AllocPa);
-		DBGLOG_MEM32(RX, INFO, pRxCell->AllocVa,
-			sizeof(struct RXD_STRUCT));
-		ASSERT(0);
+
+		prAdapter = prGlueInfo->prAdapter;
+		prAdapter->u4HifChkFlag |= HIF_DRV_SER;
+		kalSetHifDbgEvent(prGlueInfo);
+		return FALSE;
 	}
+
+	return TRUE;
 }
 
 bool kalDevReadData(struct GLUE_INFO *prGlueInfo, uint16_t u2Port,
@@ -3119,7 +3126,11 @@ bool kalDevReadData(struct GLUE_INFO *prGlueInfo, uint16_t u2Port,
 
 	prDmaBuf = &pRxCell->DmaBuf;
 
-	kalCheckRxDmadAddr(pRxCell, pRxD, prDmaBuf);
+	if (kalCheckRxDmadAddr(prGlueInfo, pRxCell, pRxD, prDmaBuf)
+			== FALSE) {
+		fgRet = false;
+		goto skip;
+	}
 
 	if (prMemOps->copyRxData &&
 	    !prMemOps->copyRxData(prHifInfo, pRxCell, prDmaBuf, prSwRfb)) {

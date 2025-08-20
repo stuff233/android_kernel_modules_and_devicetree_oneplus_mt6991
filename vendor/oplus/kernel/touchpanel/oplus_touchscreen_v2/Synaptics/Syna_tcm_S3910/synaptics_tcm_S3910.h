@@ -141,6 +141,8 @@
 
 /*S3910 addr high bit is palm flag, 60*/
 #define PALM_FLAG       6
+#define FINGER_FLAG     1
+#define GLOVE_FLAG      2
 
 #define GESTURE_MODE_SWITCH_RETRY_TIMES     5
 #define MAX_HEALTH_REPORT_LEN 50
@@ -514,6 +516,8 @@ struct touch_data {
 	unsigned int nsm_state;
 	unsigned int num_of_active_objects;
 	unsigned int num_of_cpu_cycles;
+	unsigned int glove_flag;
+	unsigned int glove_status;
 };
 
 struct touch_hcd {

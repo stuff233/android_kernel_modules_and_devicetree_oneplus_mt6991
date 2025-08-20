@@ -3042,6 +3042,12 @@ int mtk_drm_aod_setbacklight(struct drm_crtc *crtc, unsigned int level)
 		DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
 		return -EINVAL;
 	}
+	if (mtk_crtc_with_sub_path(crtc, mtk_crtc->ddp_mode))
+		mtk_crtc_wait_frame_done(mtk_crtc, cmdq_handle,
+			DDP_SECOND_PATH, 0);
+	else
+		mtk_crtc_wait_frame_done(mtk_crtc, cmdq_handle,
+			DDP_FIRST_PATH, 0);
 
 	if (is_frame_mode) {
 		cmdq_pkt_clear_event(cmdq_handle,
@@ -3049,13 +3055,6 @@ int mtk_drm_aod_setbacklight(struct drm_crtc *crtc, unsigned int level)
 		cmdq_pkt_wfe(cmdq_handle,
 			mtk_crtc->gce_obj.event[EVENT_CABC_EOF]);
 	}
-
-	if (mtk_crtc_with_sub_path(crtc, mtk_crtc->ddp_mode))
-		mtk_crtc_wait_frame_done(mtk_crtc, cmdq_handle,
-			DDP_SECOND_PATH, 0);
-	else
-		mtk_crtc_wait_frame_done(mtk_crtc, cmdq_handle,
-			DDP_FIRST_PATH, 0);
 
 	/* Record Vblank start timestamp */
 	mtk_vblank_config_rec_start(mtk_crtc, cmdq_handle, SET_BL);
@@ -5470,7 +5469,6 @@ bool mtk_crtc_alloc_sram(struct mtk_drm_crtc *mtk_crtc, unsigned int hrt_idx)
 		DDPMSG("%s slbc callback registered\n", __func__);
 	}
 
-	mutex_lock(&mtk_crtc->mml_ir_sram.ref_lock);
 	mutex_lock(&mtk_crtc->mml_ir_sram.lock);
 
 	if (kref_read(&mtk_crtc->mml_ir_sram.ref) < 1) {
@@ -5492,14 +5490,7 @@ bool mtk_crtc_alloc_sram(struct mtk_drm_crtc *mtk_crtc, unsigned int hrt_idx)
 
 		kref_init(&mtk_crtc->mml_ir_sram.ref);
 	} else {
-		if (kref_read(&mtk_crtc->mml_ir_sram.ref) < 0 ||
-			kref_read(&mtk_crtc->mml_ir_sram.ref) >= INT_MAX)
-			DDPAEE("%s, mml_ir_sram ref (%d) will saturate\n",
-				__func__, kref_read(&mtk_crtc->mml_ir_sram.ref));
-		ret = kref_get_unless_zero(&mtk_crtc->mml_ir_sram.ref);
-		if (!ret)
-			DDPAEE("%s, mml_ir_sram ref (%d) zero\n",
-				__func__, kref_read(&mtk_crtc->mml_ir_sram.ref));
+		kref_get(&mtk_crtc->mml_ir_sram.ref);
 	}
 
 	mtk_crtc->mml_ir_sram.expiry_hrt_idx = hrt_idx;
@@ -5507,7 +5498,6 @@ bool mtk_crtc_alloc_sram(struct mtk_drm_crtc *mtk_crtc, unsigned int hrt_idx)
 
 done:
 	mutex_unlock(&mtk_crtc->mml_ir_sram.lock);
-	mutex_unlock(&mtk_crtc->mml_ir_sram.ref_lock);
 	return (ret == 0 ? true : false);
 }
 
@@ -5520,10 +5510,8 @@ static void mtk_crtc_free_sram(struct mtk_drm_crtc *mtk_crtc)
 	DDPMSG("%s address:0x%lx size:0x%lx\n", __func__,
 	       (unsigned long)mtk_crtc->mml_ir_sram.data.paddr, mtk_crtc->mml_ir_sram.data.size);
 
-	mutex_lock(&mtk_crtc->mml_ir_sram.lock);
 	slbc_power_off(&mtk_crtc->mml_ir_sram.data);
 	slbc_release(&mtk_crtc->mml_ir_sram.data);
-	mutex_unlock(&mtk_crtc->mml_ir_sram.lock);
 
 	DRM_MMP_MARK(sram_free, (unsigned long)mtk_crtc->mml_ir_sram.data.paddr,
 		     mtk_crtc->mml_ir_sram.expiry_hrt_idx);
@@ -10247,11 +10235,11 @@ static void ddp_cmdq_cb(struct cmdq_cb_data data)
 		drm_writeback_signal_completion(&mtk_crtc->wb_connector, 0);
 	}
 
-	mutex_lock(&mtk_crtc->mml_ir_sram.ref_lock);
+	mutex_lock(&mtk_crtc->mml_ir_sram.lock);
 	if (kref_read(&mtk_crtc->mml_ir_sram.ref) &&
 	    (cb_data->hrt_idx > mtk_crtc->mml_ir_sram.expiry_hrt_idx))
 		kref_put(&mtk_crtc->mml_ir_sram.ref, mtk_crtc_mml_clean);
-	mutex_unlock(&mtk_crtc->mml_ir_sram.ref_lock);
+	mutex_unlock(&mtk_crtc->mml_ir_sram.lock);
 
 	{	/* OVL reset debug */
 		unsigned int i;
@@ -13700,6 +13688,7 @@ skip:
 	mtk_disp_clear_channel_srt_bw(mtk_crtc);
 
 	/* 3.1 stop the last mml pkt */
+	mutex_lock(&mtk_crtc->mml_ir_sram.lock);
 	if (kref_read(&mtk_crtc->mml_ir_sram.ref)) {
 		if (mtk_crtc_is_frame_trigger_mode(crtc) || mtk_crtc_is_connector_enable(mtk_crtc))
 			mtk_crtc_mml_racing_stop_sync(crtc, cmdq_handle, false);
@@ -13707,6 +13696,7 @@ skip:
 		mtk_crtc_free_sram(mtk_crtc);
 		refcount_set(&mtk_crtc->mml_ir_sram.ref.refcount, 0);
 	}
+	mutex_unlock(&mtk_crtc->mml_ir_sram.lock);
 	if ((crtc_id == 0) && priv && priv->mml_ctx)
 		mml_drm_kick_done(priv->mml_ctx);
 
@@ -18216,66 +18206,27 @@ static void mtk_drm_wb_cb(struct cmdq_cb_data data)
 	struct mtk_cmdq_cb_data *cb_data = data.data;
 	struct drm_crtc *crtc = cb_data->crtc;
 	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
-	struct mtk_crtc_state *state;
-	struct mtk_drm_private *priv = NULL;
 	int session_id;
-	unsigned int i;
-	int sec_on = 0;
 	unsigned int fence_idx = cb_data->wb_fence_idx;
 	struct pixel_type_map *pixel_types;
-	unsigned int spr_mode_type,bw_zero;
+	unsigned int spr_mode_type;
 
-	if (mtk_crtc->base.dev && mtk_crtc->base.dev->dev_private)
-		priv = mtk_crtc->base.dev->dev_private;
 
-	if (mtk_crtc->pq_data) {
-		spr_mode_type = mtk_get_cur_spr_type(crtc);
-		pixel_types = &mtk_crtc->pq_data->pixel_types;
-		pixel_types->map[pixel_types->head].fence_idx = fence_idx;
-		pixel_types->map[pixel_types->head].type = spr_mode_type;
-		pixel_types->map[pixel_types->head].secure = false;
-		DDPDBG("%s: idx %d fence %u type %u", __func__,
-			pixel_types->head, fence_idx, spr_mode_type);
-		pixel_types->head += 1;
-		pixel_types->head %= SPR_TYPE_FENCE_MAX;
-	}
+ 	if (mtk_crtc->pq_data) {
+ 		spr_mode_type = mtk_get_cur_spr_type(crtc);
+ 		pixel_types = &mtk_crtc->pq_data->pixel_types;
+ 		pixel_types->map[pixel_types->head].fence_idx = fence_idx;
+ 		pixel_types->map[pixel_types->head].type = spr_mode_type;
+ 		pixel_types->map[pixel_types->head].secure = false;
+ 		DDPDBG("%s: idx %d fence %u type %u", __func__,
+ 		pixel_types->head, fence_idx, spr_mode_type);
+ 		pixel_types->head += 1;
+ 		pixel_types->head %= SPR_TYPE_FENCE_MAX;
+ 	}
 	/* fb reference conut will also have 1 after put */
-	//	drm_framebuffer_put(cb_data->wb_fb);
+	// drm_framebuffer_put(cb_data->wb_fb);
 	session_id = mtk_get_session_id(crtc);
 	mtk_crtc_release_output_buffer_fence_by_idx(crtc, session_id, fence_idx);
-
-	DDPINFO("%s: fence %u\n", __func__, fence_idx);
-
-	// reset wb sec_on state to enter idle
-	DDP_MUTEX_LOCK(&mtk_crtc->lock, __func__, __LINE__);
-
-	for (i = 0; i < mtk_crtc->layer_nr; i++) {
-		struct drm_plane *plane = &mtk_crtc->planes[i].base;
-
-		if (plane->state->crtc) {
-			if (plane->state->fb
-				&& plane->state->fb->format->format
-					!= DRM_FORMAT_C8
-				&& mtk_drm_fb_is_secure(plane->state->fb))
-				sec_on = true;
-		}
-
-	}
-	mtk_crtc->sec_on = sec_on;
-	if (crtc->state) {
-		state = to_mtk_crtc_state(crtc->state);
-		if(fence_idx >= state->prop_val[CRTC_PROP_OUTPUT_FENCE_IDX])
-			state->prop_val[CRTC_PROP_OUTPUT_ENABLE] = 0;
-	}
-
-	DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
-
-	bw_zero = 0;
-	if (priv && priv->power_state) {
-		DDP_MUTEX_LOCK(&mtk_crtc->lock, __func__, __LINE__);
-		mtk_addon_path_io_cmd(crtc, cb_data->wb_scn, PMQOS_SET_HRT_BW, &bw_zero);
-		DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
-	}
 
 
 	CRTC_MMP_MARK(0, wbBmpDump, 1, fence_idx);
@@ -21474,7 +21425,6 @@ int mtk_drm_crtc_create(struct drm_device *drm_dev,
 	mutex_init(&mtk_crtc->lock);
 	mutex_init(&mtk_crtc->sol_lock);
 	mutex_init(&mtk_crtc->cwb_lock);
-	mutex_init(&mtk_crtc->mml_ir_sram.ref_lock);
 	mutex_init(&mtk_crtc->mml_ir_sram.lock);
 	spin_lock_init(&mtk_crtc->pf_time_lock);
 	mtk_crtc->config_regs = priv->config_regs;

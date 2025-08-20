@@ -25,7 +25,6 @@
 
 #define EMIRAMAIN_EEPROM_READ_ID	0xA0
 #define EMIRAMAIN_EEPROM_WRITE_ID	0xA1
-#define EMIRAMAIN_AF_WRITE_ID	0x18
 #define EMIRAMAIN_MAX_OFFSET		0x8000
 
 #define PFX "emiramain_camera_sensor"
@@ -2694,35 +2693,10 @@ static int emiramain_set_awb_gain(struct subdrv_ctx *ctx, u8 *para, u32 *len) {
 	return 0;
 }
 
-static int yala_adaptor_i2c_wr_u8_u8(struct i2c_client *i2c_client, u8 addr, u8 reg, u8 val)
-{
-	int ret;
-	u8 buf[2];
-	struct i2c_msg msg;
-
-	if (i2c_client == NULL)
-		return -ENODEV;
-
-	buf[0] = reg;
-	buf[1] = val;
-
-	msg.addr = addr;
-	msg.flags = i2c_client->flags;
-	msg.buf = buf;
-	msg.len = sizeof(buf);
-
-	ret = i2c_transfer(i2c_client->adapter, &msg, 1);
-	if (ret < 0)
-		dev_info(&i2c_client->dev, "i2c transfer failed (%d)\n", ret);
-
-	return ret;
-}
-
 static int open(struct subdrv_ctx *ctx)
 {
 	u32 sensor_id = 0;
 	u32 scenario_id = 0;
-	int ret = -1;
 
 	/* get sensor id */
 	if (get_imgsensor_id(ctx, &sensor_id) != ERROR_NONE)
@@ -2730,9 +2704,6 @@ static int open(struct subdrv_ctx *ctx)
 
 	/* initail setting */
 	sensor_init(ctx);
-	ret = yala_adaptor_i2c_wr_u8_u8(ctx->i2c_client, EMIRAMAIN_AF_WRITE_ID >> 1, 0x02, 0x0);
-	mdelay(2);
-	DRV_LOGE(ctx, "init emiramain af before write qsc data, ret: %d\n", ret);
 
 	/*QSC setting*/
 	if (ctx->s_ctx.s_cali != NULL) {

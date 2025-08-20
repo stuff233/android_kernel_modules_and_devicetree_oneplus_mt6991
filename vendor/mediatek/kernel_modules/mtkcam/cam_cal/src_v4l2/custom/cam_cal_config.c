@@ -1137,7 +1137,7 @@ EXPORT_SYMBOL(read_cam_cal);
 void custom_eeprom_read(bool *is_valid, void *d_data)
 {
 	*is_valid = (preload_ois.valid == 0x01) ? true : false;
-	if (d_data)
+	if (d_data && (*is_valid))
 		memcpy(d_data, preload_ois.ois_table, sizeof(preload_ois.ois_table));
 	return;
 }

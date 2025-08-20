@@ -27,22 +27,6 @@
 					15 00 00 40 00 00 02 6F 4A
 					39 00 00 00 00 00 05 B8 00 00 00 00
 				];
-				oplus,dsi-lhbm-pressed-icon-on-command = [
-					39 00 00 40 00 00 06 F0 55 AA 52 08 08
-					15 00 00 40 00 00 02 6F 4A
-					39 00 00 40 00 00 0D A9 02 00 DF 31 31 06 01 00 87 00 00 05
-					39 00 00 40 00 00 06 F0 55 AA 52 08 04
-					15 00 00 40 00 00 02 CB 37
-					15 00 00 00 00 00 02 8B 10
-				];
-				oplus,dsi-lhbm-pressed-icon-on-pwm-command = [
-					39 00 00 40 00 00 06 F0 55 AA 52 08 08
-					15 00 00 40 00 00 02 6F 4A
-					39 00 00 40 00 00 0D A9 02 00 DF 31 31 16 01 00 87 00 00 25
-					39 00 00 40 00 00 06 F0 55 AA 52 08 04
-					15 00 00 40 00 00 02 CB 37
-					15 00 00 00 00 00 02 8B 10
-				];
 				oplus,dsi-lhbm-pressed-icon-off-command = [
 					15 00 00 40 00 00 02 87 20
 					39 00 00 40 00 00 06 F0 55 AA 52 08 04
@@ -105,8 +89,6 @@
 				oplus,dsi-aod-on-command-state = "dsi_ls_mode";
 				oplus,dsi-aod-high-mode-command-state = "dsi_ls_mode";
 				oplus,dsi-aod-low-mode-command-state = "dsi_ls_mode";
-				oplus,dsi-lhbm-pressed-icon-on-command-state = "dsi_hs_mode";
-				oplus,dsi-lhbm-pressed-icon-on-pwm-command-state = "dsi_hs_mode";
 				oplus,dsi-lhbm-pressed-icon-off-command-state = "dsi_hs_mode";
 				oplus,dsi-lhbm-pressed-icon-gamma-command-state = "dsi_hs_mode";
 				oplus,dsi-lhbm-pressed-icon-grayscale-command-state = "dsi_hs_mode";

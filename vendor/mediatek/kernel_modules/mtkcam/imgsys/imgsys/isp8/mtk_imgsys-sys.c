@@ -756,9 +756,9 @@ static void cmdq_cb_done_worker(struct work_struct *work)
 			&swbuf_data, sizeof(struct img_sw_buffer),
 			gwork->reqfd, 0);
 	else
-	imgsys_send(pipe->imgsys_dev->scp_pdev, HCP_IMGSYS_DEQUE_DONE_ID,
-		&swbuf_data, sizeof(struct img_sw_buffer),
-		gwork->reqfd, 0);
+		imgsys_send(pipe->imgsys_dev->scp_pdev, HCP_IMGSYS_DEQUE_DONE_ID,
+			&swbuf_data, sizeof(struct img_sw_buffer),
+			gwork->reqfd, 0);
 
 	wake_up_interruptible(&frm_info_waitq);
 
@@ -2236,7 +2236,6 @@ unsigned int mode = imgsys_streaming;
 	}
 	for (i = 0 ; i < swfrm_info->total_frmnum ; i++) {
 		swfrm_info->user_info[i].g_swbuf = gce_virt + (swfrm_info->user_info[i].sw_goft);
-		swfrm_info->user_info[i].bw_swbuf = gce_virt + (swfrm_info->user_info[i].sw_bwoft);
 	}
 
 	/*first group in request*/

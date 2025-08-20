@@ -248,6 +248,12 @@ static int oplus_maxim_parse_dt(struct oplus_maxim_gauge_chip *chip)
 	chip->gpio_info.maxim_romid_crc_support = of_property_read_bool(node, "oplus,maxim_romid_crc_support");
 	chg_info("maxim_romid_crc_support %d\n", chip->gpio_info.maxim_romid_crc_support);
 
+	rc = of_property_read_u32(node, "maxim_trl_ndelay", &chip->gpio_info.maxim_trl_ndelay);
+	if (rc) {
+		chip->gpio_info.maxim_trl_ndelay = 0;
+	}
+	chg_info("maxim_trl_ndelay %d\n", chip->gpio_info.maxim_trl_ndelay);
+
 	chip->maxim_in_kernel_init_ok = true;
 	chg_info("maxim_in_kernel_init_ok: %d\n", chip->maxim_in_kernel_init_ok);
 
@@ -494,6 +500,11 @@ static void *oplus_chg_get_func(struct oplus_chg_ic_dev *ic_dev,
 	case OPLUS_IC_FUNC_GAUGE_GET_BATT_AUTH:
 		func = OPLUS_CHG_IC_FUNC_CHECK(
 			OPLUS_IC_FUNC_GAUGE_GET_BATT_AUTH,
+			oplus_maxim_guage_get_batt_auth);
+		break;
+	case OPLUS_IC_FUNC_GAUGE_GET_BATT_HMAC:
+		func = OPLUS_CHG_IC_FUNC_CHECK(
+			OPLUS_IC_FUNC_GAUGE_GET_BATT_HMAC,
 			oplus_maxim_guage_get_batt_auth);
 		break;
 	case OPLUS_IC_FUNC_GAUGE_SET_BATT_HISTSOH_DATA:

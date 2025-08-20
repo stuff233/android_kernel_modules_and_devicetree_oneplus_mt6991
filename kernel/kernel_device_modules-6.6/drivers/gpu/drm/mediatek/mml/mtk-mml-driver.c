@@ -18,6 +18,7 @@
 #include <linux/debugfs.h>
 #include <linux/minmax.h>
 #include <linux/dma-mapping.h>
+#include <uapi/linux/sched/types.h>
 
 #include <mtk-smmu-v3.h>
 
@@ -147,6 +148,7 @@ struct mml_dev {
 	struct cmdq_base *cmdq_base;
 	struct cmdq_client *cmdq_clts[MML_MAX_CMDQ_CLTS];
 	u8 cmdq_clt_cnt;
+	struct kthread_worker *kt_config;
 
 	u32 sw_ver;
 	atomic_t drm_cnt;
@@ -669,6 +671,11 @@ struct mml_m2m_ctx *mml_dev_create_m2m_ctx(struct mml_dev *mml,
 exit:
 	mutex_unlock(&mml->ctx_mutex);
 	return ctx;
+}
+
+struct kthread_worker *mml_dev_get_config_worker(struct mml_dev *mml)
+{
+	return mml->kt_config;
 }
 
 struct mml_v4l2_dev *mml_get_v4l2_dev(struct mml_dev *mml)
@@ -1383,24 +1390,13 @@ void mml_comp_qos_set(struct mml_comp *comp, struct mml_task *task,
 	struct mml_comp_config *ccfg, u32 throughput, u32 tput_up)
 {
 	struct mml_frame_config *cfg = task->config;
-	const struct mml_frame_info *info = &cfg->info;
-	const struct mml_frame_dest *dest = &info->dest[0];
 	struct mml_dev *mml = cfg->mml;
 	struct mml_pipe_cache *cache = &cfg->cache[ccfg->pipe];
 	struct mml_comp_bw *bw = &comp->bw[cfg->dpc];
-	u32 srt_bw = bw->srt_bw, hrt_bw = bw->hrt_bw;
-	u32 stash_srt_bw = bw->stash_srt_bw, stash_hrt_bw = bw->stash_hrt_bw;
+	const u32 srt_bw = bw->srt_bw, hrt_bw = bw->hrt_bw;
+	const u32 stash_srt_bw = bw->stash_srt_bw, stash_hrt_bw = bw->stash_hrt_bw;
 	bool hrt = cfg->info.mode == MML_MODE_RACING || cfg->info.mode == MML_MODE_DIRECT_LINK;
 	bool updated = false;
-
-	mml_log("%s srt_bw %d hrt_bw %d", __func__, srt_bw, hrt_bw);
-	if (cfg->panel_w > dest->data.width) {
-		srt_bw = (u32)((u64)srt_bw * cfg->panel_w / dest->data.width);
-		hrt_bw = (u32)((u64)hrt_bw * cfg->panel_w / dest->data.width);
-		stash_srt_bw = (u32)((u64)stash_srt_bw * cfg->panel_w / dest->data.width);
-		stash_hrt_bw = (u32)((u64)stash_hrt_bw * cfg->panel_w / dest->data.width);
-		mml_log("%s panel_w > width srt_bw %d hrt_bw %d", __func__, srt_bw, hrt_bw);
-	}
 
 	/* store for debug log */
 	task->pipe[ccfg->pipe].bandwidth = max(srt_bw, task->pipe[ccfg->pipe].bandwidth);
@@ -2266,6 +2262,18 @@ static int mml_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	platform_set_drvdata(pdev, mml);
 
+	mml->kt_config = kthread_create_worker(0, "mml_work0");
+	if (IS_ERR(mml->kt_config)) {
+		ret = PTR_ERR(mml->kt_config);
+		mml_log("%s create thread fail %d", __func__, ret);
+		goto err_sys_add;
+	} else {
+		struct sched_param kt_param = { .sched_priority = MAX_RT_PRIO - 1 };
+
+		ret = sched_setscheduler(mml->kt_config->task, SCHED_FIFO, &kt_param);
+		mml_log("%s thread work0 ret %d", __func__, ret);
+	}
+
 	mml->pdev = pdev;
 	mutex_init(&mml->sys_state_mutex);
 	mutex_init(&mml->ctx_mutex);
@@ -2433,6 +2441,11 @@ static int mml_remove(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct mml_dev *mml = platform_get_drvdata(pdev);
+
+	if (mml->kt_config) {
+		kthread_destroy_worker(mml->kt_config);
+		mml->kt_config = NULL;
+	}
 
 #ifdef MML_DEBUG_PROC
 	proc_remove(mml->dbg_procfs);

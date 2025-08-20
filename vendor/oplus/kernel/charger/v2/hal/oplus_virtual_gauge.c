@@ -1870,7 +1870,11 @@ static int oplus_chg_vg_get_exist_status(struct oplus_chg_ic_dev *ic_dev,
 	*exist = true;
 	chip = oplus_chg_ic_get_drvdata(ic_dev);
 	for (i = 0; i < chip->child_num; i++) {
-		if (!chip->child_list[i].ic_dev->online) {
+		if (chip->child_list[i].ic_dev->online)
+			continue;
+
+		if (func_is_support(&chip->child_list[i],
+				     OPLUS_IC_FUNC_GAUGE_GET_BATT_EXIST)) {
 			*exist = false;
 			break;
 		}

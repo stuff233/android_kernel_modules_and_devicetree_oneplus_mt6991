@@ -36,6 +36,13 @@ struct cfbt_trace_filed {
 
 struct cfbt_trace_filed trace_fileds [CFBT_MAX_GROUP_NUM] = {0};
 
+inline bool test_frameid_valid(int grp_id)
+{
+	if (grp_id < 0 || grp_id > (CFBT_MAX_GROUP_NUM - 1))
+		return false;
+	return true;
+}
+
 noinline int tracing_mark_write(const char *buf)
 {
 	trace_printk(buf);
@@ -115,41 +122,57 @@ static void trace_value(int frame_id, unsigned long val, const char *msg, int ms
 
 void trace_cfbt_util(int frame_id, unsigned long val)
 {
+	if (!test_frameid_valid(frame_id))
+		return;
 	trace_value(frame_id, val, "cfbt_util", TRACE_CFBT_UTIL, get_last_val_util(frame_id));
 }
 
 void trace_cfbt_frame_state(int frame_id, unsigned long val)
 {
+	if (!test_frameid_valid(frame_id))
+		return;
 	trace_value(frame_id, val, "cfbt_frame_state", TRACE_CFBT_FRAME_STATE, get_last_val_frame_state(frame_id));
 }
 
 void trace_cfbt_stage(int frame_id, unsigned long val)
 {
+	if (!test_frameid_valid(frame_id))
+		return;
 	trace_value(frame_id, val, "cfbt_stage", TRACE_CFBT_STAGE, get_last_val_stage(frame_id));
 }
 
 void trace_cfbt_task(int frame_id, unsigned long val)
 {
+	if (!test_frameid_valid(frame_id))
+		return;
 	trace_value(frame_id, val, "cfbt_task", TRACE_CFBT_TASK, get_last_val_task(frame_id));
 }
 
 void trace_cfbt_rescue(int frame_id, unsigned long val)
 {
+	if (!test_frameid_valid(frame_id))
+		return;
 	trace_value(frame_id, val, "cfbt_rescue", TRACE_CFBT_RESCUE, get_last_val_rescue(frame_id));
 }
 
 void trace_cfbt_enhance(int frame_id, unsigned long val)
 {
+	if (!test_frameid_valid(frame_id))
+		return;
 	trace_value(frame_id, val, "cfbt_enhance", TRACE_CFBT_ENHANCE, get_last_val_enhance(frame_id));
 }
 
 void trace_cfbt_rutil(int frame_id, unsigned long val)
 {
+	if (!test_frameid_valid(frame_id))
+		return;
 	trace_value(frame_id, val, "cfbt_rutil", TRACE_CFBT_RUTIL, get_last_val_rutil(frame_id));
 }
 
 void trace_cfbt_uframeid(int frame_id, unsigned long val)
 {
+	if (!test_frameid_valid(frame_id))
+		return;
 	trace_value(frame_id, val, "cfbt_uframeid", TRACE_CFBT_UFRAMEID, get_last_val_uframeid(frame_id));
 }
 

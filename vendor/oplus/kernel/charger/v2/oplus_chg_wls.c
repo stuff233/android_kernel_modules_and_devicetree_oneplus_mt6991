@@ -5422,6 +5422,7 @@ static void oplus_chg_wls_usb_int_work(struct work_struct *work)
 	if (wls_dev->usb_present) {
 		oplus_chg_wls_rx_set_rx_mode_safety(wls_dev, OPLUS_CHG_WLS_RX_MODE_UNKNOWN);
 		vote(wls_dev->rx_disable_votable, USB_VOTER, true, 1, false);
+		rerun_election(wls_dev->rx_disable_votable, true);
 		if (!wls_dev->support_tx_boost && !wls_dev->support_wls_and_tx_boost && !wls_dev->support_no_hw_interlock)
 			(void)oplus_chg_wls_set_trx_enable(wls_dev, false);
 		/*oplus_chg_anon_mod_event(wls_dev->wls_ocm, OPLUS_CHG_EVENT_OFFLINE);*/

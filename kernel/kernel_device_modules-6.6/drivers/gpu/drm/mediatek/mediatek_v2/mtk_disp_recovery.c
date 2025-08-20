@@ -238,7 +238,8 @@ int _mtk_esd_check_read(struct drm_crtc *crtc)
 
 		cmdq_pkt_wfe(cmdq_handle,
 				     mtk_crtc->gce_obj.event[EVENT_CABC_EOF]);
-
+		cmdq_pkt_set_event(cmdq_handle,
+					mtk_crtc->gce_obj.event[EVENT_STREAM_BLOCK]);
 		/* Record Vblank start timestamp */
 		mtk_vblank_config_rec_start(mtk_crtc, cmdq_handle, ESD_CHECK);
 
@@ -639,6 +640,8 @@ int mtk_drm_esd_testing_process(struct mtk_drm_esd_ctx *esd_ctx, bool need_lock)
 #endif /* OPLUS_FEATURE_DISPLAY_MAINLINE*/
 #endif /* OPLUS_FEATURE_DISPLAY */
 		unsigned int crtc_idx = 0;
+		struct cmdq_pkt *handle = NULL;
+		struct mtk_panel_ext *panel_ext;
 
 		if (!esd_ctx) {
 			DDPPR_ERR("%s invalid ESD context, stop thread\n", __func__);
@@ -655,6 +658,7 @@ int mtk_drm_esd_testing_process(struct mtk_drm_esd_ctx *esd_ctx, bool need_lock)
 		}
 
 		mtk_crtc = to_mtk_crtc(crtc);
+		panel_ext = mtk_crtc->panel_ext;
 		if (!mtk_crtc) {
 			DDPPR_ERR("%s invalid mtk_crtc stop thread\n", __func__);
 			return -EINVAL;
@@ -670,6 +674,19 @@ int mtk_drm_esd_testing_process(struct mtk_drm_esd_ctx *esd_ctx, bool need_lock)
 
 		i = 0; /* repeat */
 		do {
+			if (mtk_crtc_is_frame_trigger_mode(esd_ctx->crtc) && esd_ctx->chk_mode == READ_LCM) {
+				 int index = drm_crtc_index(crtc);
+				 if (mtk_drm_is_idle(crtc)) {
+					DDPINFO("[ESD%u]%s esd check in idle\n", index, __func__);
+					mtk_drm_idlemgr_kick(__func__, &mtk_crtc->base, index);
+				 }
+				mtk_crtc_pkt_create(&handle, &mtk_crtc->base,
+				mtk_crtc->gce_obj.client[CLIENT_CFG]);
+				cmdq_pkt_clear_event(handle, mtk_crtc->gce_obj.event[EVENT_STREAM_BLOCK]);
+				cmdq_pkt_flush(handle);
+				cmdq_pkt_destroy(handle);
+			}
+			CRTC_MMP_MARK(crtc_idx, esd_check, 0x00ff, 0);
 			mtk_drm_trace_begin("esd loop:%d", i);
 			ret = mtk_drm_esd_check(crtc);
 			if (!ret && !debug_force_esd) /* success */
@@ -938,6 +955,10 @@ void mtk_disp_esd_check_switch(struct drm_crtc *crtc, bool enable)
 	atomic_set(&esd_ctx->check_wakeup, enable);
 	if (enable)
 		wake_up_interruptible(&esd_ctx->check_task_wq);
+
+#ifdef OPLUS_FEATURE_DISPLAY
+	esd_ctx->esd_check_cnt = 0;
+#endif
 }
 
 static void mtk_disp_esd_chk_deinit(struct drm_crtc *crtc)

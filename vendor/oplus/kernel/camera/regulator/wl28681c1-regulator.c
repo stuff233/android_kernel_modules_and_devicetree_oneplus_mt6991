@@ -267,6 +267,7 @@ static int multi_reg_i2c_probe(struct i2c_client *i2c)
         }
     }
 
+    mdelay(1);
     /*process the fan53870 wl2868 wl28681c IC*/
     pdata->regmap = devm_regmap_init_i2c(i2c, &multi_reg_regmap);
     if (IS_ERR(pdata->regmap)) {
@@ -317,6 +318,11 @@ static int multi_reg_i2c_probe(struct i2c_client *i2c)
         }
         dev_info(&i2c->dev, "register regulator ldo %s ok\n", multi_reg_regulators[i].name);
     }
+
+{
+// disable UVP
+    ret = regmap_write(pdata->regmap, 0x11, 0x07);
+}
     g_pdata = pdata;
     ret = device_create_file(&i2c->dev, &dev_attr_debug_i2c_ops);
     dev_info(&i2c->dev, "regulator probe end\n");

@@ -5273,9 +5273,15 @@ rlmDomainBuildCmdByDefaultTable(struct ADAPTER *prAdapter,
 	uint16_t u2DefaultTableIndex)
 {
 	uint16_t i, k;
+#ifndef OPLUS_FEATURE_WIFI_PWR_LMT
+//Add for distinguish country power limit at runtime.
 	struct COUNTRY_POWER_LIMIT_TABLE_DEFAULT *prPwrLimitSubBand =
 			&g_rRlmPowerLimitDefault[u2DefaultTableIndex];
+#else
+struct COUNTRY_POWER_LIMIT_TABLE_DEFAULT *prPwrLimitSubBand =
+		&g_prOplusCountryPwrLimitDefault[u2DefaultTableIndex];
 
+#endif /*OPLUS_FEATURE_WIFI_PWR_LMT*/
 	struct CMD_CHANNEL_POWER_LIMIT *prPwrLimit = NULL;
 	struct CMD_CHANNEL_POWER_LIMIT_HE *prPwrLmtHE = NULL;
 	struct CMD_CHANNEL_POWER_LIMIT_HE_BW160 *prPwrLmtHEBW160 = NULL;
@@ -5309,13 +5315,9 @@ rlmDomainBuildCmdByDefaultTable(struct ADAPTER *prAdapter,
 		"ucCountryPwrLimitCtrl setting[%x]",
 		prAdapter->rWifiVar.ucCountryPwrLimitCtrl);
 
-#ifdef OPLUS_FEATURE_WIFI_PWR_LMT
-#if (CFG_SUPPORT_PWR_LMT_EMI == 0)
-prPwrLimitSubBand = &g_prOplusCountryPwrLimitDefault[u2DefaultTableIndex];
-#endif
-#endif /*OPLUS_FEATURE_WIFI_PWR_LMT*/
-
 	eType = prCmd->ucLimitType;
+#ifndef OPLUS_FEATURE_WIFI_PWR_LMT
+//Add for distinguish country power limit at runtime.
 #if (CFG_SUPPORT_WIFI_6G_PWR_MODE == 1)
 	if (rlmDomainPwrLmt6GPwrModeGet(prAdapter) == PWR_MODE_6G_VLP) {
 		prPwrLimitSubBand =
@@ -5325,6 +5327,7 @@ prPwrLimitSubBand = &g_prOplusCountryPwrLimitDefault[u2DefaultTableIndex];
 			&g_rRlmPowerLimitDefault_SP[u2DefaultTableIndex];
 	}
 #endif
+#endif /*OPLUS_FEATURE_WIFI_PWR_LMT*/
 
 	if (eType == PWR_LIMIT_TYPE_COMP_11AX)
 		prPwrLmtHE = &prCmd->u.rChPwrLimtHE[0];
@@ -11312,8 +11315,11 @@ void rlmDomainSendPwrLimitCmd(struct ADAPTER *prAdapter)
 	uint32_t u4SetQueryInfoLen;
 	uint8_t bandedgeParam[4] = { 0, 0, 0, 0 };
 	uint8_t *pu1PwrLmtCountryCode;
+
+#ifndef OPLUS_FEATURE_WIFI_PWR_LMT
 	struct COUNTRY_POWER_LIMIT_TABLE_DEFAULT *prPwrLmtDefaultTable =
 				g_rRlmPowerLimitDefault;
+#endif /*OPLUS_FEATURE_WIFI_PWR_LMT*/
 
 	struct DOMAIN_INFO_ENTRY *prDomainInfo;
 	/* TODO : 5G band edge */
@@ -11495,6 +11501,7 @@ void rlmDomainSendPwrLimitCmd(struct ADAPTER *prAdapter)
 			"Can't find any table index!\n");
 		goto err;
 	}
+#ifndef OPLUS_FEATURE_WIFI_PWR_LMT
 #if (CFG_SUPPORT_WIFI_6G_PWR_MODE == 1)
 	DBGLOG(RLM, TRACE, "Country 6G Power mode[%d]\n",
 		rlmDomainPwrLmt6GPwrModeGet(prAdapter));
@@ -11506,24 +11513,16 @@ void rlmDomainSendPwrLimitCmd(struct ADAPTER *prAdapter)
 
 	pu1PwrLmtCountryCode = &prPwrLmtDefaultTable[u2DefaultTableIndex]
 				.aucCountryCode[0];
-
-#ifdef OPLUS_FEATURE_WIFI_PWR_LMT
-#if (CFG_SUPPORT_PWR_LMT_EMI == 0)
-	WLAN_GET_FIELD_BE16(&g_prOplusCountryPwrLimitDefault
-			    [u2DefaultTableIndex]
-			    .aucCountryCode[0],
-		&prCmd->u2CountryCode);
-	WLAN_GET_FIELD_BE16(&g_prOplusCountryPwrLimitDefault
-			    [u2DefaultTableIndex]
-			    .aucCountryCode[0],
-		&prCmdHE->u2CountryCode);
-#endif
 #else
+	pu1PwrLmtCountryCode = &g_prOplusCountryPwrLimitDefault[u2DefaultTableIndex]
+				.aucCountryCode[0];
+#endif /*OPLUS_FEATURE_WIFI_PWR_LMT*/
+
 	WLAN_GET_FIELD_BE16(pu1PwrLmtCountryCode,
 		&prCmd->u2CountryCode);
 	WLAN_GET_FIELD_BE16(pu1PwrLmtCountryCode,
 		&prCmdHE->u2CountryCode);
-#endif /*OPLUS_FEATURE_WIFI_PWR_LMT*/
+
 
 #if (CFG_SUPPORT_PWR_LIMIT_EHT == 1)
 	WLAN_GET_FIELD_BE16(pu1PwrLmtCountryCode,

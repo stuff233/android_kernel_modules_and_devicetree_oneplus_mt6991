@@ -28,12 +28,6 @@
 #include "adaptor-subdrv.h"
 #endif
 
-#ifdef OPLUS_FEATURE_CAMERA_COMMON
-#define KONKAUTELE_AF_SLAVE_ID	0x32
-#define DW9786_CHIP_EN 0xE000
-extern struct mutex dw9786_mutex;
-#endif /*OPLUS_FEATURE_CAMERA_COMMON*/
-
 static const char * const clk_names[] = {
 	ADAPTOR_CLK_NAMES
 };
@@ -178,6 +172,28 @@ u64 ixc_table_rewrite(struct subdrv_ctx *ctx, u16 *list, u32 len)
 	}
 	ixc_end = ktime_get_boottime_ns();
 	return (ixc_end-ixc_start)/1000;
+}
+
+static void get_sensor_hw_mode(struct subdrv_ctx *ctx,
+		enum SENSOR_SCENARIO_ID_ENUM scenario_id, u64 *val) {
+	u8 *hw_mode = (u8 *)(uintptr_t)(*val);
+	if (scenario_id >= ctx->s_ctx.sensor_mode_num) {
+		DRV_LOGE(ctx, "invalid sid:%u, mode_num:%u\n",
+			scenario_id, ctx->s_ctx.sensor_mode_num);
+		scenario_id = SENSOR_SCENARIO_ID_NORMAL_PREVIEW;
+	}
+	*hw_mode = ctx->s_ctx.mode[scenario_id].hw_mode;
+}
+
+static void get_sensor_buffer_increase(struct subdrv_ctx *ctx,
+		enum SENSOR_SCENARIO_ID_ENUM scenario_id, u64 *val) {
+	u8 *buffer_increase = (u8 *)(uintptr_t)(*val);
+	if (scenario_id >= ctx->s_ctx.sensor_mode_num) {
+		DRV_LOGE(ctx, "invalid sid:%u, mode_num:%u\n",
+			scenario_id, ctx->s_ctx.sensor_mode_num);
+		scenario_id = SENSOR_SCENARIO_ID_NORMAL_PREVIEW;
+	}
+	*buffer_increase = ctx->s_ctx.mode[scenario_id].buffer_increase;
 }
 #endif /*OPLUS_FEATURE_CAMERA_COMMON*/
 
@@ -366,37 +382,11 @@ bool probe_eeprom(struct subdrv_ctx *ctx)
 	u32 header_id = 0;
 	u32 addr_header_id = 0;
 	struct eeprom_info_struct *info = ctx->s_ctx.eeprom_info;
-#ifdef OPLUS_FEATURE_CAMERA_COMMON
-	unsigned short stdby[17] = {0x0100, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-								0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-								0x0000, 0x0000, 0x0000};
-	u16 dw9786_status;
-	int ret = 0;
-#endif /*OPLUS_FEATURE_CAMERA_COMMON*/
 
 	if (info == NULL) {
 		DRV_LOG_MUST(ctx, "sensor no support eeprom\n");
 		return FALSE;
 	}
-
-#ifdef OPLUS_FEATURE_CAMERA_COMMON
-	if(ctx->s_ctx.sensor_id == KONKAUTELE_SENSOR_ID) {
-		mutex_lock(&dw9786_mutex);
-		DRV_LOG_MUST(ctx, "dw9786_mutex: %p\n", &dw9786_mutex);
-		ret = adaptor_i2c_rd_u16(ctx->i2c_client, KONKAUTELE_AF_SLAVE_ID>> 1, DW9786_CHIP_EN, &dw9786_status);
-		DRV_LOG_MUST(ctx, "DW9786_CHIP_EN: 0x%x, ret: %d\n", dw9786_status, ret);
-		if (dw9786_status != 1) {
-			DRV_LOG_MUST(ctx, "dw9786 probe_eeprom open read protect\n");
-			adaptor_i2c_wr_u16(ctx->i2c_client, KONKAUTELE_AF_SLAVE_ID>> 1, DW9786_CHIP_EN, 0x0000);
-			mdelay(2);
-			adaptor_i2c_wr_p8(ctx->i2c_client, KONKAUTELE_AF_SLAVE_ID>> 1, DW9786_CHIP_EN, (unsigned char *)stdby, 34);
-			mdelay(5);
-			adaptor_i2c_wr_u16(ctx->i2c_client, KONKAUTELE_AF_SLAVE_ID>> 1, 0xE004, 0x0001);
-			mdelay(20);
-		}
-		mutex_unlock(&dw9786_mutex);
-	}
-#endif /*OPLUS_FEATURE_CAMERA_COMMON*/
 
 	eeprom_num = ctx->s_ctx.eeprom_num;
 	if (ctx->eeprom_index < ctx->s_ctx.eeprom_num) {
@@ -4511,6 +4501,14 @@ int common_feature_control(struct subdrv_ctx *ctx, MSDK_SENSOR_FEATURE_ENUM feat
 			(u64 *)(feature_data + 1));
 		break;
 	case SENSOR_FEATURE_GET_HW_MODE:
+		get_sensor_hw_mode(ctx,
+			(enum SENSOR_SCENARIO_ID_ENUM)*(feature_data),
+			feature_data + 1);
+		break;
+	case SENSOR_FEATURE_GET_BUFFER_INCREASE:
+		get_sensor_buffer_increase(ctx,
+			(enum SENSOR_SCENARIO_ID_ENUM)*(feature_data),
+			feature_data + 1);
 		break;
 #endif /*OPLUS_FEATURE_CAMERA_COMMON*/
 	default:
@@ -4915,4 +4913,5 @@ void get_sensor_setting_info(struct subdrv_ctx *ctx,
 		(void *)&ctx->s_ctx.mode[scenario_id].sensor_setting_info,
 		sizeof(struct SENSOR_SETTING_INFO_STRUCT));
 }
+
 #endif /*OPLUS_FEATURE_CAMERA_COMMON*/

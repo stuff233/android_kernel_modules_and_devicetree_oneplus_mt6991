@@ -1009,7 +1009,6 @@ struct mtk_drm_sram_list {
 struct mtk_drm_sram {
 	struct slbc_data data;
 	struct mutex lock;
-	struct mutex ref_lock;
 	struct kref ref;
 	unsigned int expiry_hrt_idx;
 };

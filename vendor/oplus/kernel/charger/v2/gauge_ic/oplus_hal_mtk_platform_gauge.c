@@ -702,9 +702,7 @@ static int oplus_mt6375_guage_set_reset_gauge(struct oplus_chg_ic_dev *ic_dev, c
 	int reset_cc = 0;
 	int rc = 0;
 	int get_soh;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0))
 	int get_cc;
-#endif
 	int retry_count = 0;
 
 	if (buf == NULL) {
@@ -724,7 +722,6 @@ static int oplus_mt6375_guage_set_reset_gauge(struct oplus_chg_ic_dev *ic_dev, c
 
 	do {
 		retry_count++;
-		chg_info("%s: Reset retry_count %d\n", __func__, retry_count);
 		if (!g_gauge_chip) {
 			chg_err("%s: Gauge chip not initialized\n", __func__);
 			rc = -ENODEV;
@@ -755,22 +752,24 @@ static int oplus_mt6375_guage_set_reset_gauge(struct oplus_chg_ic_dev *ic_dev, c
 			continue;
 		}
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0))
 		get_cc = g_gauge_chip->gauge_ops->get_battery_cc();
+		chg_info("%s: Reset retry_count = %d %d %d %d\n", __func__, retry_count, enable, get_soh, get_cc);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0))
 		if (get_cc != reset_cc) {
+#else
+		if (get_cc != 0) {
+#endif
 			g_gauge_chip->gauge_ops->set_gauge_cycles(reset_cc);
 			continue;
 		}
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0))
 		if (get_soh == reset_soh && get_cc == reset_cc) {
-			chg_info("%s: Reset successful\n", __func__);
-			break;
-		}
 #else
-		if (get_soh == reset_soh) {
+		if (get_soh == reset_soh && get_cc == 0) {
+#endif
 			chg_info("%s: Reset successful\n", __func__);
 			break;
 		}
-#endif
 	} while (retry_count < RESET_GAUGE_RETRY_TIMES);
 
 out:

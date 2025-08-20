@@ -184,7 +184,7 @@ static int g_sensor_hwmode(struct adaptor_ctx *ctx, void *arg)
 	union feature_para para;
 	u32 len;
 	u8  hw_mode = 0;
-	para.u64[0] = (u64)&(info->sensor_mode);
+	para.u64[0] = info->sensor_mode;
 	para.u64[1] = (u64)&hw_mode;
 
 	subdrv_call(ctx, feature_control,
@@ -193,6 +193,24 @@ static int g_sensor_hwmode(struct adaptor_ctx *ctx, void *arg)
 	if (copy_to_user((void *)info->p_hw_mode, &hw_mode, sizeof(hw_mode)))
 		return -EFAULT;
 	adaptor_logi(ctx, "sensor_mode: %d get hw_mode %d\n", info->sensor_mode, hw_mode);
+	return 0;
+}
+
+static int g_sensor_buffer_increase(struct adaptor_ctx *ctx, void *arg)
+{
+	struct oplus_sensor_buffer_increase *info = arg;
+	union feature_para para;
+	u32 len;
+	u8  buffer_increase = 0;
+	para.u64[0] = info->sensor_mode;
+	para.u64[1] = (u64)&buffer_increase;
+
+	subdrv_call(ctx, feature_control,
+		SENSOR_FEATURE_GET_BUFFER_INCREASE,
+		para.u8, &len);
+	if (copy_to_user((void *)info->p_buffer_increase, &buffer_increase, sizeof(buffer_increase)))
+		return -EFAULT;
+	adaptor_logi(ctx, "sensor_mode: %d get buffer_increase %d\n", info->sensor_mode, buffer_increase);
 	return 0;
 }
 
@@ -207,6 +225,7 @@ static const struct ioctl_entry oplus_ioctl_list[] = {
 	{VIDIOC_MTK_G_QCOMPD_OFFSET_DATA, g_get_qcom_pdaf_offset_data},
 	{VIDIOC_MTK_G_SENSOR_SETTING_INFO, g_sensor_setting_info},
 	{VIDIOC_MTK_G_SENSOR_HWMODE, g_sensor_hwmode},
+	{VIDIOC_MTK_G_BUFFER_INCREASE, g_sensor_buffer_increase},
 };
 
 void oplus_adaptor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg, int* ret)

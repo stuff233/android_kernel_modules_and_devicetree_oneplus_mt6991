@@ -166,7 +166,7 @@ unsigned long calculate_utilization(u64 utilization)
 	return (utilization * get_stage_enhancement_value()) >> 10;
 }
 
-unsigned long get_rescue_utilization(struct cfbt_frame_group *group, unsigned long fbg_util)
+unsigned long get_rescue_utilization_inner(struct cfbt_frame_group *group, unsigned long fbg_util)
 {
 	unsigned long real_util = 0;
 	unsigned long enhance = 0;
@@ -201,6 +201,11 @@ unsigned long get_rescue_utilization(struct cfbt_frame_group *group, unsigned lo
 
 out:
 	return real_util;
+}
+
+unsigned long get_rescue_utilization(struct cfbt_frame_group *group, unsigned long fbg_util)
+{
+	return (get_rescue_utilization_inner(group, fbg_util) * get_cfbt_util_down()) >> 10;
 }
 
 /* timer management */
