@@ -5,6 +5,7 @@
 
 #include <linux/module.h>
 #include <linux/proc_fs.h>
+#include "device_info_storage.h"
 #include "device_info.h"
 #include <soc/oplus/system/oplus_project.h>
 #include <linux/slab.h>
@@ -198,57 +199,6 @@ static const struct file_operations device_node_fops = {
 };
 #endif
 
-static int devinfo_read_emmc_func(struct seq_file *s, void *v)
-{
-	struct mmc_host *mmc = (struct mmc_host *)s->private;
-	char *manufacture = NULL;
-	if (!mmc) {
-		return -EINVAL;
-	}
-	switch (mmc->card->cid.manfid) {
-	case  0x11:
-		manufacture = "TOSHIBA";
-		break;
-	case  0x15:
-		manufacture = "SAMSUNG";
-		break;
-	case  0x45:
-		manufacture = "SANDISK";
-		break;
-	case  0x90:
-		manufacture = "HYNIX";
-		break;
-	case 0xFE:
-		manufacture = "ELPIDA";
-		break;
-	case 0x13:
-		manufacture = "MICRON";
-		break;
-	case 0x9B:
-		manufacture = "YMTC";
-		break;
-	case 0x32:
-		manufacture = "PHISON";
-		break;
-	case 0xD6:
-		if (NULL != strstr(mmc->card->cid.prod_name, "C9C761") || NULL != strstr(mmc->card->cid.prod_name, "C9C762")
-			|| NULL != strstr(mmc->card->cid.prod_name, "C9C764")) {
-			manufacture = "FORESEE";
-		} else {
-			manufacture = "HG";
-		}
-		break;
-	case 0xf4:
-		manufacture = "BIWIN";
-		break;
-	default:
-		printk("%s unknown mmc->card->cid.manfid is %x\n", __func__, mmc->card->cid.manfid);
-		manufacture = "Unknown";
-	}
-	seq_printf(s, "Device version:\t\t%s\n", mmc->card->cid.prod_name);
-	seq_printf(s, "Device manufacture:\t\t%s\n", manufacture);
-	return 0;
-}
 static int devinfo_read_emmcfw_func(struct seq_file *s, void *v)
 {
 	struct mmc_host *mmc = (struct mmc_host *)s->private;

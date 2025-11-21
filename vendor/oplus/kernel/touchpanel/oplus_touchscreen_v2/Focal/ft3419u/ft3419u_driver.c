@@ -2168,7 +2168,7 @@ static int fts_get_touch_points(void *chip_data, struct point_info *points,
 			points[pointid].y = ((buf[4 + base] & 0x0F) << 8) + (buf[5 + base] & 0xFF);
 			points[pointid].touch_major = buf[7 + base];
 			points[pointid].width_major = buf[7 + base];
-			points[pointid].z =  buf[7 + base];
+			points[pointid].z = buf[6 + base];
 			event_flag = (buf[2 + base] >> 6);
 
 			if (ts_data->ft3419u_grip_v2_support) {
@@ -2180,15 +2180,17 @@ static int fts_get_touch_points(void *chip_data, struct point_info *points,
 					points[pointid].tx_press, points[pointid].rx_press, points[pointid].tx_er, points[pointid].rx_er);
 			}
 		} else if (ts_data->high_resolution_support_x8) {
-			points[pointid].x = (((buf[2 + base] & 0x0F) << 11) +
-			                     ((buf[3 + base] & 0xFF) << 3) +
-			                     ((buf[6 + base] >> 5) & 0x07));
-			points[pointid].y = (((buf[4 + base] & 0x0F) << 11) +
-			                     ((buf[5 + base] & 0xFF) << 3) +
-			                     ((buf[6 + base] >> 2) & 0x07));
+			points[pointid].x = ((buf[2 + base] & 0x20) >> 5) +
+					((buf[2 + base] & 0x0F) << 11) +
+					((buf[3 + base] & 0xFF) << 3) +
+					((buf[6 + base] & 0xC0) >> 5);
+			points[pointid].y = ((buf[2 + base] & 0x10) >> 4) +
+					((buf[4 + base] & 0x0F) << 11) +
+					((buf[5 + base] & 0xFF) << 3) +
+					((buf[6 + base] & 0x30) >> 3);
 			points[pointid].touch_major = buf[7 + base];
 			points[pointid].width_major = buf[7 + base];
-			points[pointid].z =  buf[7 + base];
+			points[pointid].z = buf[6 + base] & 0x0F;
 			event_flag = (buf[2 + base] >> 6);
 
 			if (ts_data->ft3419u_grip_v2_support) {
@@ -2425,6 +2427,55 @@ static void fts_enable_fingerprint_underscreen(void *chip_data, uint32_t enable)
 	if (ret < 0) {
 		TPD_INFO("%s: write FOD enable(%x=%x) fail", __func__, FTS_REG_FOD_EN, val);
 	}
+}
+
+static void fts_enable_gesture_mask(void *chip_data, uint32_t enable)
+{
+	int ret = 0;
+	int config1 = 0xff;
+	int config2 = 0xff;
+	int config4 = 0xff;
+	struct chip_data_ft3419u *ts_data = (struct chip_data_ft3419u *)chip_data;
+	int state = ts_data->gesture_state;
+
+	if (enable) {
+		SET_GESTURE_BIT(state, RIGHT2LEFT_SWIP, config1, 0)
+		SET_GESTURE_BIT(state, LEFT2RIGHT_SWIP, config1, 1)
+		SET_GESTURE_BIT(state, DOWN2UP_SWIP, config1, 2)
+		SET_GESTURE_BIT(state, UP2DOWN_SWIP, config1, 3)
+		SET_GESTURE_BIT(state, DOU_TAP, config1, 4)
+		SET_GESTURE_BIT(state, DOU_SWIP, config1, 5)
+		SET_GESTURE_BIT(state, SINGLE_TAP, config1, 7)
+		SET_GESTURE_BIT(state, CIRCLE_GESTURE, config2, 0)
+		SET_GESTURE_BIT(state, W_GESTURE, config2, 1)
+		SET_GESTURE_BIT(state, M_GESTRUE, config2, 2)
+		SET_GESTURE_BIT(state, RIGHT_VEE, config4, 1)
+		SET_GESTURE_BIT(state, LEFT_VEE, config4, 2)
+		SET_GESTURE_BIT(state, DOWN_VEE, config4, 3)
+		SET_GESTURE_BIT(state, UP_VEE, config4, 4)
+		SET_GESTURE_BIT(state, HEART, config4, 5)
+	} else {
+		config1 = 0;
+		config2 = 0;
+		config4 = 0;
+	}
+
+	TPD_INFO("%s: config1:%x, config2:%x config4:%x\n", __func__, config1, config2, config4);
+	ret = touch_i2c_write_byte(ts_data->client, FTS_REG_GESTURE_CONFIG1, config1);
+	if (ret < 0) {
+		TPD_INFO("%s: write FTS_REG_GESTURE_CONFIG1 enable(%x=%x) fail", __func__, FTS_REG_GESTURE_CONFIG1, config1);
+	}
+	ret = touch_i2c_write_byte(ts_data->client, FTS_REG_GESTURE_CONFIG2, config2);
+	if (ret < 0) {
+		TPD_INFO("%s: write FTS_REG_GESTURE_CONFIG2 enable(%x=%x) fail", __func__, FTS_REG_GESTURE_CONFIG2, config2);
+	}
+	ret = touch_i2c_write_byte(ts_data->client, FTS_REG_GESTURE_CONFIG4, config4);
+	if (ret < 0) {
+		TPD_INFO("%s: write FTS_REG_GESTURE_CONFIG4 enable(%x=%x) fail", __func__, FTS_REG_GESTURE_CONFIG4, config4);
+	}
+
+	msleep(1);
+	TPD_INFO("%s, enable[%d] register[FTS_REG_GESTURE_CONFIG1. FTS_REG_GESTURE_CONFIG2. FTS_REG_GESTURE_CONFIG4]", __func__, enable);
 }
 
 static void fts_screenon_fingerprint_info(void *chip_data,
@@ -2713,6 +2764,7 @@ static struct oplus_touchpanel_operations fts_ops = {
 	.get_gesture_info           = fts_get_gesture_info,
 	.ftm_process                = fts_ftm_process,
 	.enable_fingerprint         = fts_enable_fingerprint_underscreen,
+	.enable_gesture_mask        = fts_enable_gesture_mask,
 	.screenon_fingerprint_info  = fts_screenon_fingerprint_info,
 	.register_info_read         = fts_register_info_read,
 	.set_touch_direction        = fts_set_touch_direction,

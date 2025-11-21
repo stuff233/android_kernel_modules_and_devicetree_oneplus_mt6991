@@ -969,7 +969,11 @@ extern bool tcpm_inquire_floating_ground(struct tcpc_device *tcpc);
 extern uint8_t tcpm_inquire_typec_local_rp(struct tcpc_device *tcpc);
 extern void tcpm_inquire_sink_vbus(struct tcpc_device *tcpc,
 				   int *mv, int *ma, uint8_t *type);
-
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* oplus charge add for dp/dm vol */
+extern int tcpm_set_usb_dpdm_pull_low(
+	struct tcpc_device *tcpc, bool enable);
+#endif
 extern int tcpm_typec_set_usb_sink_curr(
 	struct tcpc_device *tcpc, int curr);
 

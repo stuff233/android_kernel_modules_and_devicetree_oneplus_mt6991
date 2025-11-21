@@ -235,6 +235,10 @@ struct tcpc_ops {
 	int (*set_vbus_short_cc_en)(struct tcpc_device *tcpc, bool cc1, bool cc2);
 
 	int (*set_low_power_mode)(struct tcpc_device *tcpc, bool en, int pull);
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* oplus charge add for dp/dm vol */
+	int (*set_usb_dpdm_pull_low)(struct tcpc_device *tcpc, bool enable);
+#endif
 
 #if CONFIG_TYPEC_CAP_AUTO_DISCHARGE
 #if CONFIG_TCPC_AUTO_DISCHARGE_IC

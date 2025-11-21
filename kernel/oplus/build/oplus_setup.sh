@@ -2,7 +2,6 @@
 
 function set_build_environment_common() {
     export CHIPSET_COMPANY=MTK
-    source vendor/oplus/kernel/prebuilt/vendorsetup.sh
     export BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
     export KERNEL_VERSION=kernel-6.6
     export OPLUS_FEATURES=""

@@ -106,7 +106,8 @@
 #define HEALTH_REPORT_RST_PARITY    "parity_rst"
 #define HEALTH_REPORT_RST_WD        "wd_rst"
 #define HEALTH_REPORT_RST_OTHER     "other_rst"
-#define HEALTH_REPORT_GLOVE_ENTER	"glove_enterTimes"
+#define HEALTH_REPORT_GLOVE_ENTER   "glove_enterTimes"
+#define HEALTH_REPORT_BASELINE_NEGATIVE  "baseline_negative"
 
 #define FINGERPRINT_DOWN_DETECT 0X0f
 #define FINGERPRINT_UP_DETECT 0X1f

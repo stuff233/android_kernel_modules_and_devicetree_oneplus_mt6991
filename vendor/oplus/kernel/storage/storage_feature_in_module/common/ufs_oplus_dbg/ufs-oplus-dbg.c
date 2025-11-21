@@ -712,7 +712,7 @@ static void create_devinfo_ufs(void *data, async_cookie_t c)
 
 static int monitor_verify_command(unsigned char *cmd)
 {
-    if (cmd[0] != 0x3B && cmd[0] != 0x3C && cmd[0] != 0xC0)
+    if (cmd[0] != 0x3B && cmd[0] != 0x3C && cmd[0] != 0xC0 && cmd[0] != 0xD0)
         return false;
 
     return true;
@@ -764,7 +764,8 @@ int ufs_ioctl_monitor(struct scsi_device *dev, void __user *buf_user)
 	cmdlen = COMMAND_SIZE(opcode);
 	if (((VENDOR_SPECIFIC_CDB == opcode) && (0 == strncmp(dev->vendor, "SAMSUNG ", 8)))
 	         || ((READ_BUFFER == opcode) && (0 == strncmp(dev->vendor, "XBSTOR ", 7)))
-	         || ((READ_BUFFER == opcode) && (0 == strncmp(dev->vendor, "YMTC ", 5)) && (strnstr(dev->model, "B4TF", 15)))) {
+	         || ((READ_BUFFER == opcode) && (0 == strncmp(dev->vendor, "YMTC ", 5)) && (strnstr(dev->model, "B4TF", 15)))
+	         || (0 == strncmp(dev->vendor, "SKhynix ", 8))) {
 		cmdlen = 16;
 	}
 

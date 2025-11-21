@@ -135,6 +135,22 @@ void tcpm_resume(struct tcpc_device *tcpc)
 }
 EXPORT_SYMBOL(tcpm_resume);
 
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* oplus charge add for dp/dm vol */
+int tcpm_set_usb_dpdm_pull_low(
+	struct tcpc_device *tcpc, bool enable)
+{
+	int ret = 0;
+
+	tcpci_lock_typec(tcpc);
+	ret = tcpci_set_usb_dpdm_pull_low(tcpc, enable);
+	tcpci_unlock_typec(tcpc);
+
+	return ret;
+}
+EXPORT_SYMBOL(tcpm_set_usb_dpdm_pull_low);
+#endif
+
 int tcpm_inquire_remote_cc(struct tcpc_device *tcpc,
 	uint8_t *cc1, uint8_t *cc2, bool from_ic)
 {

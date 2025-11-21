@@ -578,7 +578,7 @@ int mt6375_set_hvdcp_detect_enable(struct mt6375_chg_data *ddata);
 int mt6375_set_hvdcp_detect_disable(struct mt6375_chg_data *ddata);
 int mt6375_set_hvdcp_to_5v(void);
 int mt6375_set_hvdcp_to_9v(void);
-int mt6375_reset_hvdcp_reg(struct mt6375_chg_data *ddata);
+int mt6375_reset_hvdcp_reg(struct mt6375_chg_data *ddata, bool en);
 void oplus_set_hvdcp_flag_clear(void);
 #endif /* CONFIG_OPLUS_HVDCP_SUPPORT */
 #ifdef OPLUS_FEATURE_CHG_BASIC
@@ -1084,9 +1084,12 @@ static void mt6375_chg_attach_pre_process(struct mt6375_chg_data *ddata,
 	attach = ONLINE_GET_ATTACH(attach);
 
 #ifdef CONFIG_OPLUS_HVDCP_SUPPORT
-		ret = mt6375_reset_hvdcp_reg(ddata);
-		if (ret < 0)
-			mt_dbg(ddata->dev, "%s: fail to write hvdcp_device_type\n", __func__);
+	if (!attach)
+		ret = mt6375_reset_hvdcp_reg(ddata, false);
+	else
+		ret = mt6375_reset_hvdcp_reg(ddata, true);
+	if (ret < 0)
+		mt_dbg(ddata->dev, "%s: fail to write hvdcp_device_type\n", __func__);
 
 	if (!attach) {
 		cancel_delayed_work_sync(&ddata->hvdcp_work);
@@ -1262,7 +1265,7 @@ enable_hvdcp:
 
 	if (oplus_ddata->oplus_get_hvdcp_bc12_result == true) {
 		printk("%s HVDCP retry bc12 get result is DCP!\n", __func__);
-		ret = mt6375_reset_hvdcp_reg(oplus_ddata);
+		ret = mt6375_reset_hvdcp_reg(oplus_ddata, true);
 		if (ret < 0)
 			printk("cannot reset all the hvdcp reg!\n");
 		ret = mt6375_set_hvdcp_detect_enable(oplus_ddata);
@@ -1478,12 +1481,12 @@ static void mt6375_chg_bc12_work_func(struct work_struct *work)
 #endif /* OPLUS_FEATURE_CHG_BASIC */
 		printk("%s: enable hvdcp detect is_mtksvooc_project = %d\n", __func__, is_mtksvooc_project);
 		if (true == is_mtksvooc_project) {
-			ret = mt6375_reset_hvdcp_reg(ddata);
+			ret = mt6375_reset_hvdcp_reg(ddata, true);
 			if (ret < 0)
 				printk("cannot reset all the hvdcp reg!\n");
 			printk("vooc dpdm drop gnd\n");
 		} else {
-			ret = mt6375_reset_hvdcp_reg(ddata);
+			ret = mt6375_reset_hvdcp_reg(ddata, true);
 			if (ret < 0)
 				printk("cannot reset all the hvdcp reg!\n");
 			ret = mt6375_set_hvdcp_detect_enable(ddata);
@@ -1568,7 +1571,7 @@ out:
 		cancel_delayed_work_sync(&ddata->hvdcp_result_check_work);
 		ddata->hvdcp_type = POWER_SUPPLY_TYPE_UNKNOWN;
 
-		ret = mt6375_reset_hvdcp_reg(ddata);
+		ret = mt6375_reset_hvdcp_reg(ddata, false);
 		if (ret < 0)
 			printk("%s: fail to write dpdm_ctrl\n", __func__);
 	}
@@ -3012,18 +3015,24 @@ int mt6375_set_hvdcp_to_9v(void)
 }
 EXPORT_SYMBOL(mt6375_set_hvdcp_to_9v);
 
-int mt6375_reset_hvdcp_reg(struct mt6375_chg_data *ddata)
+int mt6375_reset_hvdcp_reg(struct mt6375_chg_data *ddata, bool en)
 {
-	if (!ddata) {
+	if (!ddata)
 		return -EINVAL;
-	} else {
+	/* when unattach that en is false, need to pull low on dp/dm */
+	if (en) {
 		regmap_update_bits(ddata->rmap, MT6375_REG_DPDM_CTRL1, 0xff, 0x00);
-		regmap_update_bits(ddata->rmap, MT6375_REG_DPDM_CTRL2, 0xff, 0x00);
 		regmap_update_bits(ddata->rmap, MT6375_HVDCP_SETTING_CTRL1, 0xff, 0x00);
-		regmap_update_bits(ddata->rmap, MT6375_REG_DPDM_CTRL4, 0xff, 0x00);
-		regmap_update_bits(ddata->rmap, MT6375_HVDCP_SETTING_CTRL2, 0xff, 0x00);
-		return 0;
+
+	} else {
+		regmap_update_bits(ddata->rmap, MT6375_REG_DPDM_CTRL1, 0xff, 0xa3);
+		regmap_update_bits(ddata->rmap, MT6375_HVDCP_SETTING_CTRL1, 0xff, 0x33);
 	}
+	regmap_update_bits(ddata->rmap, MT6375_REG_DPDM_CTRL2, 0xff, 0x00);
+	regmap_update_bits(ddata->rmap, MT6375_REG_DPDM_CTRL4, 0xff, 0x00);
+	regmap_update_bits(ddata->rmap, MT6375_HVDCP_SETTING_CTRL2, 0xff, 0x00);
+
+	return 0;
 }
 
 static void mt6375_hvdcp_result_check_work(struct work_struct *work)

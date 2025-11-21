@@ -3445,6 +3445,10 @@ static void ilitek_rate_white_list_ctrl(void *chip_data, int value)
 		cmd[3] = 0x78;
 		ILI_INFO("report rate 120 hz\n");
 		break;
+	case 144: /* 144Hz */
+		cmd[3] = 0x90;
+		ILI_INFO("report rate 144 hz\n");
+		break;
 	case 180: /* 180Hz */
 		cmd[3] = 0xB4;
 		ILI_INFO("report rate 180 hz\n");

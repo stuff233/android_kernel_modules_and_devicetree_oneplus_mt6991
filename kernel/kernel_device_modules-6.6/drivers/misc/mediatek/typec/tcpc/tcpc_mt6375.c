@@ -119,6 +119,10 @@
 #define MT6375_REG_WD2MISCSET	(0x28)
 #define MT6375_REG_WD2VOLCMP	(0x29)
 
+/* PMU add for dp/dm vol */
+#define MT6375_REG_DPDM_CTRL1	(0x153)
+#define MT6375_REG_DPDM_CTRL3	(0x155)
+
 /* Mask & Shift */
 /* MT6375_REG_PHYCTRL8: 0x89 */
 #define MT6375_MSK_PRLRSTB	BIT(1)
@@ -1863,6 +1867,61 @@ static int mt6375_set_low_power_mode(struct tcpc_device *tcpc, bool en,
 	return mt6375_write8(ddata, MT6375_REG_SYSCTRL2, data);
 }
 
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* oplus charge add for dp/dm vol */
+static int mt6375_set_usb_dpdm_pull_low(struct tcpc_device *tcpc, bool enable)
+{
+	struct mt6375_tcpc_data *ddata = tcpc_get_dev_data(tcpc);
+	int ret = 0;
+	u32 val = 0;
+
+	if (!ddata)
+		return -EINVAL;
+
+	if (enable) {
+		ret = regmap_write(ddata->rmap, MT6375_REG_DPDM_CTRL1, 0xa3);
+		if (ret) {
+			dev_err(ddata->dev, "failed to en manual mode(%d)\n", ret);
+			return ret;
+		}
+		ret = regmap_write(ddata->rmap, MT6375_REG_DPDM_CTRL3, 0x33);
+		if (ret) {
+			dev_err(ddata->dev, "failed to pull low dpdm(%d)\n", ret);
+			return ret;
+		}
+	} else {
+		ret = regmap_write(ddata->rmap, MT6375_REG_DPDM_CTRL1, 0x00);
+		if (ret) {
+			dev_err(ddata->dev, "failed to dis manual mode(%d)\n", ret);
+			return ret;
+		}
+		ret = regmap_write(ddata->rmap, MT6375_REG_DPDM_CTRL3, 0x00);
+		if (ret) {
+			dev_err(ddata->dev, "failed to reset dpdm(%d)\n", ret);
+			return ret;
+		}
+	}
+
+	ret = regmap_read(ddata->rmap, MT6375_REG_DPDM_CTRL1, &val);
+	if (ret) {
+		dev_err(ddata->dev,
+			"failed to read MT6375_REG_DPDM_CTRL1(%d)\n", ret);
+		return ret;
+	}
+	MT6375_INFO("%s: MT6375_REG_DPDM_CTRL1: %d\n", __func__, val);
+
+	ret = regmap_read(ddata->rmap, MT6375_REG_DPDM_CTRL3, &val);
+	if (ret) {
+		dev_err(ddata->dev,
+			"failed to read MT6375_REG_DPDM_CTRL3(%d)\n", ret);
+		return ret;
+	}
+	MT6375_INFO("%s: MT6375_REG_DPDM_CTRL3: %d\n", __func__, val);
+
+	return 0;
+}
+#endif
+
 #if IS_ENABLED(CONFIG_USB_POWER_DELIVERY)
 static int mt6375_set_msg_header(struct tcpc_device *tcpc, u8 power_role,
 				 u8 data_role)
@@ -2455,6 +2514,10 @@ static struct tcpc_ops mt6375_tcpc_ops = {
 #endif
 
 	.set_low_power_mode = mt6375_set_low_power_mode,
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* oplus charge add for dp/dm vol */
+	.set_usb_dpdm_pull_low = mt6375_set_usb_dpdm_pull_low,
+#endif
 
 #if IS_ENABLED(CONFIG_USB_POWER_DELIVERY)
 	.set_msg_header = mt6375_set_msg_header,

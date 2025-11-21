@@ -84,6 +84,7 @@
 #define FTS_REG_SAMSUNG_SPECIFAL                0xFA
 #define FTS_REG_HEALTH_1                        0xFD
 #define FTS_REG_HEALTH_2                        0xFE
+#define FTS_REG_HEALTH_BASELINE                 0x03
 #define FTS_REG_GLOVE_MODE_SWITCH               0xC0
 #define FTS_REG_GLOVE_MODE_STATE                0x01
 #define FTS_REG_EDGE_LIMIT_SWITCH               0xCE
@@ -122,6 +123,8 @@
 #define FTS_SC_BUF_LENGTH                       58 /* tx+rx */
 
 #define FTS_GESTURE_DATA_LEN                    28
+#define FTS_POINTER_BUFFER_LEN                  150
+#define FTS_EDG_BUFFER_LEN                      200
 
 
 #define BYTES_PER_TIME                          (128)  /* max:128 */
@@ -322,6 +325,16 @@ enum FOD_HEALTH_INFO {
 	FOD_DETECT_EFFETIVE_AREA 	= 0x22,
 	FOD_DETECT_ID_REPORRE    	= 0x30,
 };
+
+enum DEBUG_INFO {
+	RESET_TYPE		= 84,
+	DOWN_THD		= 85,
+	UP_THD			= 86,
+	IDLE_THD		= 87,
+	MAX_DIFF_H8		= 88,
+	MAX_DIFF_L8		= 89,
+};
+
 struct fts_aod_info {
 	u8 gesture_id;
 	u8 point_num;
@@ -378,6 +391,7 @@ struct chip_data_ft3683g {
 	int *scap_rawdata;
 	int *rawdata_linearity;
 	int tp_index;
+	int print_count;
 	int *node_valid;
 	int *node_valid_sc;
 	int gesture_state;

@@ -612,6 +612,9 @@ bool oplus_pipeline_task_skip_cpu(struct task_struct *task, unsigned int dst_cpu
 		if (!dislike_no_pipeline_task_run_on_prime_cpu)
 			return false;
 
+		if (task->nr_cpus_allowed <= prime_cpu_num)
+			return false;
+
 		/* other top app ui and render tasks can run on prime cpus, exclude audio tasks */
 		if ((ots->ux_state & SCHED_ASSIST_UX_PRIORITY_MASK) >= UX_PRIORITY_PIPELINE) {
 			if ((task->tgid != prime_tgid) &&

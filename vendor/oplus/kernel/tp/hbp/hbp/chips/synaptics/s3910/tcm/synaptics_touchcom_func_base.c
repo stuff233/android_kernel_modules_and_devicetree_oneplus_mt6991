@@ -773,7 +773,7 @@ int syna_tcm_get_event_data(struct tcm_dev *tcm_dev,
 {
 	int retval = 0;
 
-	if (!tcm_dev) {
+	if (!tcm_dev || !tcm_dev->read_message) {
 		hbp_err("Invalid tcm device handle\n");
 		return _EINVAL;
 	}

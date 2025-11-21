@@ -3032,7 +3032,12 @@ static u32 fts_u32_trigger_reason(void *chip_data, int gesture_enable,
 	}
 
 	/*glove mode*/
-	TPD_DEBUG("%s, GloveMode:%d", __func__, touch_buf[0]&0x40 ? 1 : 0);
+	TP_SPECIFIC_PRINT(ts_data->tp_index, ts_data->print_count, "GloveMode:%d\n", (touch_buf[0]&0x40) ? 1 : 0);
+	TP_SPECIFIC_PRINT(ts_data->tp_index, ts_data->print_count, "PalmMode:%d, WaterMode:%d\n", (touch_buf[0]&0x02) ? 1 : 0, (touch_buf[0]&0x01) ? 1 : 0);
+	if (buffer_len >= MAX_DIFF_L8) {
+		TP_SPECIFIC_PRINT(ts_data->tp_index, ts_data->print_count, "ResetType:%d, downThd:%d, upThd:%d, idleThd:%d, maxDiff:%d\n",
+			touch_buf[RESET_TYPE], touch_buf[DOWN_THD], touch_buf[UP_THD], touch_buf[IDLE_THD], ((touch_buf[MAX_DIFF_H8] << 8) + touch_buf[MAX_DIFF_L8]));
+	}
 
 	/*confirm need print debug info*/
 	if (touch_buf[0] != ts_data->irq_type) {
@@ -3441,6 +3446,11 @@ static void fts_health_report(void *chip_data, struct monitor_data *mon_data)
 	u8 ucMcFreVal[2] = {0};
 	struct chip_data_ft3683g *ts_data = (struct chip_data_ft3683g *)chip_data;
 	char *freq_str = NULL;
+	int tx_num = ts_data->hw_res->tx_num;
+	int rx_num = ts_data->hw_res->rx_num;
+	int event_num = 0;
+	char point_buff[FTS_POINTER_BUFFER_LEN] = {0};
+	char edge_buff[FTS_EDG_BUFFER_LEN] = {0};
 
 	if (IS_ERR_OR_NULL(ts_data) || IS_ERR_OR_NULL(ts_data->monitor_data)) {
 		TPD_INFO("%s:NULL Pointer", __func__);
@@ -3480,6 +3490,13 @@ static void fts_health_report(void *chip_data, struct monitor_data *mon_data)
 	    || ts_data->monitor_data->health_simulate_trigger) {
 		TPD_DETAIL("Health register(0x01):Base Refresh");
 		tp_healthinfo_report(mon_data, HEALTH_REPORT, HEALTH_REPORT_BASELINE_ERR);
+		focal_get_differ_version(ts_data);
+		cmd = FTS_REG_POINTS;
+		ret = fts_read(&cmd, 1, ts_data->touch_buf, ts_data->buffer_len);
+		if ((ts_data->tp_differ_version == FTS_DIFFER_VERSION_V2) && !ret) {
+			TPD_INFO("baseline error, tp differ print start.\n");
+			fts_print_differ_v2(ts_data, tx_num, rx_num, point_buff, edge_buff, event_num);
+		}
 	}
 	if ((val & 0x10)
 	    || ts_data->monitor_data->health_simulate_trigger) {
@@ -3543,6 +3560,29 @@ static void fts_health_report(void *chip_data, struct monitor_data *mon_data)
 		}
 	}
 	mon_data->work_freq = val;
+
+	/* baseline_negative*/
+	cmd = FTS_REG_HEALTH_BASELINE;
+	ret = fts_read_reg(cmd, &val);
+	if (ret < 0) {
+		TPD_INFO("read baseline_negative reg failed.\n");
+		return;
+	}
+	/* bit4:1---baseline negative */
+	if (val & 0x10) {
+		TPD_INFO("Health register(0x01):baseline_negative:1");
+		tp_healthinfo_report(mon_data, HEALTH_REPORT, HEALTH_REPORT_BASELINE_NEGATIVE);
+		focal_get_differ_version(ts_data);
+		cmd = FTS_REG_POINTS;
+		ret = fts_read(&cmd, 1, ts_data->touch_buf, ts_data->buffer_len);
+		if ((ts_data->tp_differ_version == FTS_DIFFER_VERSION_V2) && !ret) {
+			TPD_INFO("baseline negative, tp differ print start.\n");
+			fts_print_differ_v2(ts_data, tx_num, rx_num, point_buff, edge_buff, event_num);
+			if (ts_data->ts->exception_upload_support) {
+				tp_exception_report(&ts_data->ts->exception_data, EXCEP_BASELINE_ERR, "Baseline_negative", sizeof("Baseline_negative"));
+			}
+		}
+	}
 }
 
 static int fts_get_gesture_info(void *chip_data, struct gesture_info *gesture)

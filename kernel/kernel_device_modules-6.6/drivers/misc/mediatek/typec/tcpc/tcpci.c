@@ -447,6 +447,20 @@ int tcpci_notify_vbus_short_cc_status(struct tcpc_device *tcpc, bool vsc_status,
 }
 EXPORT_SYMBOL(tcpci_notify_vbus_short_cc_status);
 
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* oplus charge add for dp/dm vol */
+int tcpci_set_usb_dpdm_pull_low(struct tcpc_device *tcpc, bool enable)
+{
+	int ret = 0;
+
+	if (tcpc->ops->set_usb_dpdm_pull_low)
+		ret = tcpc->ops->set_usb_dpdm_pull_low(tcpc, enable);
+
+	return ret;
+}
+EXPORT_SYMBOL(tcpci_set_usb_dpdm_pull_low);
+#endif
+
 int tcpci_notify_wd0_state(struct tcpc_device *tcpc, bool wd0_state)
 {
 	struct tcp_notify tcp_noti;

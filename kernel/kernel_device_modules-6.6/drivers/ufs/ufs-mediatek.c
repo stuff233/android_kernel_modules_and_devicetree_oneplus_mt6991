@@ -2854,6 +2854,7 @@ static void ufs_mtk_fixup_dev_quirks(struct ufs_hba *hba)
 {
 	struct ufs_dev_info *dev_info = &hba->dev_info;
 	struct ufs_mtk_host *host = ufshcd_get_variant(hba);
+        struct device_node *np = hba->dev->of_node;
 
 	ufshcd_fixup_dev_quirks(hba, ufs_mtk_dev_fixups);
 
@@ -2869,6 +2870,13 @@ static void ufs_mtk_fixup_dev_quirks(struct ufs_hba *hba)
 		 */
 		hba->dev_quirks &= ~(UFS_DEVICE_QUIRK_DELAY_BEFORE_LPM |
 			UFS_DEVICE_QUIRK_DELAY_AFTER_LPM);
+	}
+
+	if ((of_property_read_bool(np, "mediatek,ufs-vcc-always-on")) ||
+	    (of_property_read_bool(np, "mediatek,ymtc-vcc-always-on") &&
+	     (STR_PRFX_EQUAL("YMUSAB4TF3D1C1", dev_info->model) || STR_PRFX_EQUAL("YMUS9B4TF2D1C1", dev_info->model)))) {
+		hba->rpm_lvl = UFS_PM_LVL_1;
+		hba->spm_lvl = UFS_PM_LVL_1;
 	}
 
 	ufs_mtk_vreg_fix_vcc(hba);

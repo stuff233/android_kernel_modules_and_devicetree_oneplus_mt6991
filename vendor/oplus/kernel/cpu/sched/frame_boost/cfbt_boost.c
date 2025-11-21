@@ -102,8 +102,9 @@ int __cfbt_add_common_tids(struct cfbt_struct *data)
 	struct oplus_task_struct *ots = NULL;
 	int i, tail_idx, thread_num, j;
 	pid_t pid;
+	unsigned long flags;
 
-	raw_spin_lock(&pipe_thread_pool->common_pool_lock);
+	raw_spin_lock_irqsave(&pipe_thread_pool->common_pool_lock, flags);
 
 	for (i = 0; i < data->tid_count; i++) {
 		tail_idx = pipe_thread_pool->tail;
@@ -140,7 +141,7 @@ int __cfbt_add_common_tids(struct cfbt_struct *data)
 		else
 			rcu_read_unlock();
 	}
-	raw_spin_unlock(&pipe_thread_pool->common_pool_lock);
+	raw_spin_unlock_irqrestore(&pipe_thread_pool->common_pool_lock, flags);
 	data->header.ret = 0;
 	pr_err("[CFBT KERNEL]%s %s %d is called success!", __FILE__, __FUNCTION__, __LINE__);
 	return 0;
@@ -151,8 +152,9 @@ int __cfbt_remove_common_tid(struct cfbt_struct *data)
 {
 	int i, thread_num;
 	struct oplus_task_struct *ots = NULL;
+	unsigned long flags;
 
-	raw_spin_lock(&pipe_thread_pool->common_pool_lock);
+	raw_spin_lock_irqsave(&pipe_thread_pool->common_pool_lock, flags);
 	thread_num = pipe_thread_pool->thread_num;
 	for (i = 0; i < CFBT_MAX_THREAD_NUM; i++) {
 		if (pipe_thread_pool->key_thread_pool[i]) {
@@ -167,7 +169,7 @@ int __cfbt_remove_common_tid(struct cfbt_struct *data)
 	}
 	pipe_thread_pool->thread_num = 0;
 	pipe_thread_pool->tail = 0;
-	raw_spin_unlock(&pipe_thread_pool->common_pool_lock);
+	raw_spin_unlock_irqrestore(&pipe_thread_pool->common_pool_lock, flags);
 	data->header.ret = 0;
 	return 0;
 }
@@ -452,9 +454,9 @@ int __cfbt_set_stage(struct cfbt_struct *data)
 	}
 
 	if (data->tag == CFBT_STAGE_END) {
-		clear_stage_rescue(grp);
+		if (grp->stage < (get_max_stage_count(get_cfbt_current_scene()) - 1))
+			clear_stage_rescue(grp);
 		update_stage_running_time(grp, fbg_ktime_get_ns() - grp->stage_start_time, grp->stage);
-		trace_cfbt_rutil(grp->id, 0);
 	}
 
 	data->header.ret = 0;
@@ -561,6 +563,15 @@ int __cfbt_remove_stage_tid(struct cfbt_struct *data)
 }
 EXPORT_SYMBOL(__cfbt_remove_stage_tid);
 
+void reset_cfbt_frame_time(struct cfbt_frame_group *grp)
+{
+	grp->frame_start_time = 0;
+	grp->curr_window_scale = 0;
+	grp->prev_window_scale = 0;
+	grp->curr_window_exec = 0;
+	grp->prev_window_exec = 0;
+}
+
 int __cfbt_set_frame_start(struct cfbt_struct *data)
 {
 	struct cfbt_frame_group *grp = NULL;
@@ -576,6 +587,7 @@ int __cfbt_set_frame_start(struct cfbt_struct *data)
 		return 0;
 	}
 	raw_spin_lock_irqsave(&grp->lock, flags);
+	reset_cfbt_frame_time(grp);
 	if (!atomic_read(&grp->using)) {
 		pr_err("[CFBT KERNEL]%s %s %dpipe_frame_groups is unusing", __FILE__, __FUNCTION__, __LINE__);
 		data->header.ret = -1;
@@ -587,6 +599,8 @@ int __cfbt_set_frame_start(struct cfbt_struct *data)
 
 	max_stage_cnt = get_max_stage_count(get_cfbt_current_scene());
 	target_time = get_target_time_for_scene(get_cfbt_current_scene());
+
+	cfbt_grp_util[grp->id] = 0;
 
 	for (int i = 0; i < MAX_FRAME_STAGE_NUM; i++) {
 		grp->stages_time.cnt_set = max_stage_cnt;
@@ -751,11 +765,8 @@ void calculate_task_util(struct task_struct *p, u64 running,
 			return;
 
 		adjusted_running = wallclock - pipe_thread_pool->mark_start;
-		if (unlikely(adjusted_running <= 0)) {
-			ofb_debug("adjusted_running <= 0 with wc=%llu ms=%llu\n",
-				wallclock, pipe_thread_pool->mark_start);
+		if (unlikely(adjusted_running <= 0))
 			return;
-		}
 
 		pipe_thread_pool->mark_start = wallclock;
 		running = adjusted_running;
@@ -784,6 +795,9 @@ bool cfbt_update_task_util(struct task_struct *task, int idx, u64 runtime, bool 
 	u64 curr_window_exec, curr_window_scale;
 
 	if (!is_cfbt_enabled())
+		return true;
+
+	if (get_cfbt_current_scene() == CFBT_NONE)
 		return true;
 
 	curr_window_exec = 0;

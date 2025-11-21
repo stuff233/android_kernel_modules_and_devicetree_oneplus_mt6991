@@ -893,10 +893,10 @@ static int mtk_drm_esd_check_worker_kthread(void *data)
 
 			if(panel_ext->funcs && panel_ext->funcs->oplus_get_doze_disable_time) {
 				time_gap = ktime_to_us(ktime_sub(ktime_get(), panel_ext->funcs->oplus_get_doze_disable_time()));
-			}
-			if (time_gap <= 50000) {
-				usleep_range((50000 - time_gap), (50000 - time_gap + 100));
-				DDPINFO("[ESD] Panel in aod state, skip esd check!\n");
+				if (time_gap <= 50000) {
+					DDPINFO("[ESD] Panel in aod state, skip esd check!\n");
+					continue;
+				}
 			}
 #endif /* OPLUS_FEATURE_DISPLAY */
 			CRTC_MMP_MARK(index, esd_check, 0x57A7, esd_ctx->chk_retry);

@@ -188,6 +188,20 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 	case TCP_NOTIFY_TYPEC_STATE:
 		old_state = noti->typec_state.old_state;
 		new_state = noti->typec_state.new_state;
+#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_MT6375_CHARGER
+/* oplus charge add for dp/dm vol */
+		if (old_state == TYPEC_UNATTACHED &&
+			new_state != TYPEC_UNATTACHED) {
+			tcpm_set_usb_dpdm_pull_low(mci->tcpc[idx], false);
+			dev_info(mci->dev, "%s set usb dpdm floating\n", __func__);
+		} else if (old_state != TYPEC_UNATTACHED &&
+				new_state == TYPEC_UNATTACHED) {
+			tcpm_set_usb_dpdm_pull_low(mci->tcpc[idx], true);
+			dev_info(mci->dev, "%s set usb dpdm pull low\n", __func__);
+		}
+#endif
+#endif
 
 		if (old_state == TYPEC_UNATTACHED &&
 		    (new_state == TYPEC_ATTACHED_SNK ||
@@ -368,6 +382,13 @@ skip_get_psy:
 			goto out;
 		}
 
+#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_MT6375_CHARGER
+/* oplus charge add for dp/dm vol */
+		tcpm_set_usb_dpdm_pull_low(mci->tcpc[i], true);
+		dev_info(mci->dev, "%s set usb dpdm pull low\n", __func__);
+#endif
+#endif
 		mci->pd_nb[i].nb.notifier_call = pd_tcp_notifier_call;
 		mci->pd_nb[i].mci = mci;
 		ret = register_tcp_dev_notifier(mci->tcpc[i], &mci->pd_nb[i].nb,

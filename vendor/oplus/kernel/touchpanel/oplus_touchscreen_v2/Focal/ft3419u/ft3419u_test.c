@@ -1359,6 +1359,12 @@ static void ft3419u_autotest_populate_result_head(
 	              p_testdata->pos);
 
 	line_num = 11;
+	buflen = snprintf(data_buf, 256, "%s, %d, %d, %d, %d, %d, ", "Noise Test", 14,
+	                  tx_num, rx_num, line_num, 2);
+	tp_test_write(p_testdata->fp, p_testdata->length, data_buf, buflen,
+	              p_testdata->pos);
+
+	line_num += tx_num;
 	buflen = snprintf(data_buf, 256, "%s, %d, %d, %d, %d, %d, ", "Rawdata Test", 7,
 	                  tx_num, rx_num, line_num, 2);
 	tp_test_write(p_testdata->fp, p_testdata->length, data_buf, buflen,

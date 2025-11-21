@@ -10,6 +10,7 @@
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-subdev.h>
+#include <linux/mutex.h>
 
 #define DW9800S_NAME				"dw9800s_24071"
 #define DW9800S_MAX_FOCUS_POS			1023
@@ -39,9 +40,17 @@
 #define DW9800S_MOVE_DELAY_US      1000
 #define DW9800S_INIT_DELAY_US      1000
 #define DW9800S_SET_VOLTAGE        2800000
+#define DW9800S_CONTROL_REG_MODE_DC  0x00
+#define DW9800S_CONTROL_REG_MODE_SAC 0x02
 
 #define VCM_IOC_POWER_ON         _IO('V', BASE_VIDIOC_PRIVATE + 4)
 #define VCM_IOC_POWER_OFF        _IO('V', BASE_VIDIOC_PRIVATE + 5)
+
+struct mode_info {
+    int32_t mode;
+    int32_t flag;
+};
+#define VCM_IOC_SET_MODE         _IOWR('V', BASE_VIDIOC_PRIVATE + 7, struct mode_info)
 
 /* dw9800s device structure */
 struct dw9800s_device {
@@ -53,6 +62,7 @@ struct dw9800s_device {
 	struct pinctrl *vcamaf_pinctrl;
 	struct pinctrl_state *vcamaf_on;
 	struct pinctrl_state *vcamaf_off;
+	struct mutex af_lock;
 	/* active or standby mode */
 	bool active;
 };
@@ -117,15 +127,19 @@ static int dw9800s_write_array(struct dw9800s_device *dw9800s,
 static int dw9800s_set_position(struct dw9800s_device *dw9800s, u16 val)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(&dw9800s->sd);
-
+	int ret = 0;
 	if (!dw9800s->active) {
 		pr_info("dw9800s set position is %d, active is %d", val, dw9800s->active);
 		return 0;
 	}
-	pr_info("dw9800s set position is %d", val);
-
-	return i2c_smbus_write_word_data(client, DW9800S_SET_POSITION_ADDR,
-					 swab16(val));
+	if(mutex_trylock(&(dw9800s->af_lock))) {
+		ret = i2c_smbus_write_word_data(client, DW9800S_SET_POSITION_ADDR, swab16(val));
+		mutex_unlock(&(dw9800s->af_lock));
+		pr_info("dw9800s set position is %d", val);
+	} else {
+		pr_info("%s af_lock is locked, dw9800s set position is  %d",__func__, val);
+	}
+	return ret;
 }
 
 static int dw9800s_release(struct dw9800s_device *dw9800s)
@@ -290,7 +304,6 @@ static int dw9800s_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 {
 	int ret;
 	struct dw9800s_device *dw9800s = sd_to_dw9800s_vcm(sd);
-
 	pr_info("%s\n", __func__);
 
 	ret = dw9800s_power_on(dw9800s);
@@ -341,6 +354,68 @@ static int dw9800s_vcm_suspend(struct dw9800s_device *dw9800s)
     pr_info("%s entry stand by mode, active:%d\n", __func__, dw9800s->active);
     return ret;
 }
+enum ACTUATOR_MODE {
+    ACTUATOR_MODE_INVALID = -1,
+    ACTUATOR_MODE_DIRECT = 0,
+    ACTUATOR_MODE_LSC = 1,
+    ACTUATOR_MODE_SAC2 = 2,
+    ACTUATOR_MODE_SAC3 = 3,
+    ACTUATOR_MODE_SAC4 = 4,
+    ACTUATOR_MODE_SAC5 = 5,
+    ACTUATOR_MODE_MAX,
+};
+static bool dw9800s_is_busy(struct dw9800s_device *dw9800s)
+{
+    unsigned char busy_reg;
+    bool busy_status = false;
+    struct i2c_client *client = v4l2_get_subdevdata(&dw9800s->sd);
+    busy_reg = i2c_smbus_read_byte_data(client, 0x05);
+    pr_info("%s, busy:0x%02x", __func__, busy_reg);
+    if (busy_reg < 0)
+       return false;
+    busy_status = (busy_reg & 0x01) ? true : false;
+    return busy_status;
+}
+static int dw9800s_actuator_mode(struct dw9800s_device *dw9800s,  unsigned char mode)
+{
+    int32_t flag = false;
+    int ret = 0;
+    struct i2c_client *client = v4l2_get_subdevdata(&dw9800s->sd);
+    mutex_lock(&(dw9800s->af_lock));
+    if(!dw9800s_is_busy(dw9800s)) {
+        ret = i2c_smbus_write_byte_data(client, DW9800S_CONTROL_REG, mode);
+        if(ret < 0) {
+            pr_info("%s,Failed to write  DW9800S_CONTROL_REG", __func__);
+            flag = false;
+        } else {
+            flag = true;
+        }
+    } else {
+        flag = false;
+        pr_info("%s, busy status", __func__);
+    }
+    mutex_unlock(&(dw9800s->af_lock));
+    pr_info("%s, mode:%d", __func__, mode);
+    return flag;
+}
+static int dw9800s_vcm_set_mode(struct dw9800s_device *dw9800s, void *arg)
+{
+    struct mode_info *config = (struct mode_info*)arg;
+    switch(config->mode) {
+        case ACTUATOR_MODE_DIRECT:
+            config->flag = dw9800s_actuator_mode(dw9800s, DW9800S_CONTROL_REG_MODE_DC);
+            break;
+        case ACTUATOR_MODE_SAC3:
+            config->flag = dw9800s_actuator_mode(dw9800s, DW9800S_CONTROL_REG_MODE_SAC);
+            break;
+        default:
+            config->flag = 0;
+            pr_info("%s Invalid motor mode\n", __func__);
+            break;
+    }
+    pr_info("%s actuator_Mode:%d, updata_flag:%d", __func__, config->mode, config->flag);
+    return 0;
+}
 
 static long dw9800s_ops_core_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 {
@@ -355,6 +430,10 @@ static long dw9800s_ops_core_ioctl(struct v4l2_subdev *sd, unsigned int cmd, voi
     case VCM_IOC_POWER_OFF:
         ret = dw9800s_vcm_suspend(dw9800s);
         pr_info("%s VCM_IOC_POWER_OFF, cmd:%d, ret:%d\n", __func__, cmd, ret);
+        break;
+    case VCM_IOC_SET_MODE:
+        ret = dw9800s_vcm_set_mode(dw9800s, arg);
+        pr_info("%s VCM_IOC_SET_MODE, cmd:%d, ret:%d \n", __func__, cmd, ret);
         break;
     default:
         ret = -ENOIOCTLCMD;
@@ -408,13 +487,12 @@ static int dw9800s_probe(struct i2c_client *client)
 	struct device *dev = &client->dev;
 	struct dw9800s_device *dw9800s;
 	int ret;
-
 	pr_info("%s\n", __func__);
 
 	dw9800s = devm_kzalloc(dev, sizeof(*dw9800s), GFP_KERNEL);
 	if (!dw9800s)
 		return -ENOMEM;
-
+	mutex_init(&(dw9800s->af_lock));
 	dw9800s->vin = devm_regulator_get(dev, "vin");
 	if (IS_ERR(dw9800s->vin)) {
 		ret = PTR_ERR(dw9800s->vin);
@@ -487,7 +565,6 @@ static void dw9800s_remove(struct i2c_client *client)
 {
 	struct v4l2_subdev *sd = i2c_get_clientdata(client);
 	struct dw9800s_device *dw9800s = sd_to_dw9800s_vcm(sd);
-
 	pr_info("%s\n", __func__);
 
 	dw9800s_subdev_cleanup(dw9800s);

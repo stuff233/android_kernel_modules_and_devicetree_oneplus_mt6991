@@ -1162,6 +1162,10 @@ void android_rvh_post_init_entity_util_avg_handler(void *unused, struct sched_en
 void android_rvh_replace_next_task_fair_handler(void *unused,
 		struct rq *rq, struct task_struct **p, struct sched_entity **se, bool *repick, bool simple, struct task_struct *prev)
 {
+	if (is_hmbird_enable()) {
+		return;
+	}
+
 	oplus_replace_next_task_fair(rq, p, se, repick, simple);
 #ifdef CONFIG_LOCKING_PROTECT
 	if (*repick != true) {

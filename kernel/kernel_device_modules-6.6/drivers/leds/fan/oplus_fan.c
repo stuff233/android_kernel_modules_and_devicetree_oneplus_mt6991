@@ -89,12 +89,14 @@ enum fan_status {
 	FAN_STATUS_NORMAL = 0,
 	FAN_STATUS_BLOCKED = 1,
 	FAN_STATUS_DAMAGED = 2,
+	FAN_STATUS_RPM_LOW = 3,
 };
 
 static const char *const fan_state_names[] = {
 	[FAN_STATUS_NORMAL] = "NORMAL",
 	[FAN_STATUS_BLOCKED] = "BLOCKED",
 	[FAN_STATUS_DAMAGED] = "DAMAGED",
+	[FAN_STATUS_RPM_LOW] = "RPM_LOW",
 };
 
 static const char *fan_status_string(enum fan_status status)
@@ -343,20 +345,22 @@ static bool oplus_fan_check_status_work_needed(struct oplus_fan_chip *chip)
 	return true;
 }
 
-#define DAMAGED_RPM_THRESHOLD 100
+#define DAMAGED_RPM_THRESHOLD 0
+#define RPM_LOW_THRESHOLD 3000
+#define MAX_EVENT_PARAM 6
 static void oplus_fan_status_work(struct work_struct *work)
 {
 	struct oplus_fan_chip *chip = container_of(work, struct oplus_fan_chip,
 			fan_status_work.work);
-	char *normal_strs[2] = { "FAN_STATE=NORMAL", NULL };
-	char *blocked_strs[2] = { "FAN_STATE=BLOCKED", NULL };
-	char *damaged_strs[2] = { "FAN_STATE=DAMAGED", NULL };
+	char *fan_env[MAX_EVENT_PARAM] = {0};
 	u32 current_duty;
 	u32 current_rpm;
 	u32 target_rpm;
 	u32 rpm_offset;
 	int shell_temp;
-	bool check_block_status;
+	bool duty_support;
+	int index = 0;
+	int i;
 
 	if (!oplus_fan_check_status_work_needed(chip)) {
 		dev_err(chip->dev, "fan_status_work:don't need check, return\n");
@@ -382,8 +386,8 @@ static void oplus_fan_status_work(struct work_struct *work)
 
 	current_rpm = chip->tach.rpm;
 
-	check_block_status = oplus_fan_check_duty_support(chip, chip->pwm_setting.duty);
-	if (check_block_status) {
+	duty_support = oplus_fan_check_duty_support(chip, current_duty);
+	if (duty_support) {
 		target_rpm = oplus_fan_get_target_rpm(chip, current_duty);
 		if (target_rpm == 0) {
 			dev_err(chip->dev, "fan_status_work:target_rpm = 0, return\n");
@@ -391,7 +395,7 @@ static void oplus_fan_status_work(struct work_struct *work)
 		}
 	} else {
 		target_rpm = 0;
-		dev_err(chip->dev, "duty=%d not support in rpm_table\n", chip->pwm_setting.duty);
+		dev_err(chip->dev, "duty=%d not support in rpm_table\n", current_duty);
 	}
 
 	shell_temp = oplus_fan_get_shell_temp(chip);
@@ -400,25 +404,30 @@ static void oplus_fan_status_work(struct work_struct *work)
 	dev_err(chip->dev, "fan_status_work: rpm=%u, level=%d, duty=%u target_rpm=%u, rpm_offset=%u\n",
 			current_rpm, chip->level, current_duty, target_rpm, rpm_offset);
 
-	if (check_block_status && current_rpm > target_rpm + rpm_offset) {
+	if (duty_support && current_rpm > target_rpm + rpm_offset) {
 		chip->status = FAN_STATUS_BLOCKED;
-		if (kobject_uevent_env(&chip->cdev.dev->kobj, KOBJ_CHANGE, blocked_strs))
-			dev_err(chip->dev, "Failed to send fan status uevent\n");
-		else
-			dev_err(chip->dev, "sent uevent %s\n", blocked_strs[0]);
-	} else if (current_rpm < DAMAGED_RPM_THRESHOLD) {
+	} else if (current_rpm == DAMAGED_RPM_THRESHOLD) {
 		chip->status = FAN_STATUS_DAMAGED;
-		if (kobject_uevent_env(&chip->cdev.dev->kobj, KOBJ_CHANGE, damaged_strs))
-			dev_err(chip->dev, "Failed to send fan status uevent\n");
-		else
-			dev_err(chip->dev, "sent uevent %s\n", damaged_strs[0]);
+	} else if (duty_support && current_rpm < target_rpm + rpm_offset - RPM_LOW_THRESHOLD) {
+		chip->status = FAN_STATUS_RPM_LOW;
 	} else {
 		chip->status = FAN_STATUS_NORMAL;
-		if (kobject_uevent_env(&chip->cdev.dev->kobj, KOBJ_CHANGE, normal_strs))
-			dev_err(chip->dev, "Failed to send fan status uevent\n");
-		else
-			dev_err(chip->dev, "sent uevent %s\n", normal_strs[0]);
 	}
+
+	fan_env[index++] = kasprintf(GFP_KERNEL, "FAN_STATE=%s", fan_status_string(chip->status));
+	fan_env[index++] = kasprintf(GFP_KERNEL, "FAN_DUTY=%u", current_duty);
+	fan_env[index++] = kasprintf(GFP_KERNEL, "FAN_RPM=%u", current_rpm);
+	fan_env[index++] = kasprintf(GFP_KERNEL, "FAN_TARGET_RPM=%u", target_rpm);
+	fan_env[index++] = kasprintf(GFP_KERNEL, "FAN_RPM_OFFSET=%u", rpm_offset);
+	fan_env[index++] = NULL;
+
+	if (kobject_uevent_env(&chip->cdev.dev->kobj, KOBJ_CHANGE, fan_env))
+		dev_err(chip->dev, "Failed to send fan status uevent\n");
+	else
+		dev_err(chip->dev, "sent uevent %s\n", fan_status_string(chip->status));
+
+	for (i = 0; i < index - 1; i++)
+		kfree(fan_env[i]);
 
 next_check:
 	schedule_delayed_work(&chip->fan_status_work, msecs_to_jiffies(chip->status_check_period));
@@ -810,6 +819,7 @@ static void mtk_oplus_fan_enable(struct oplus_fan_chip *chip, bool enabled)
 #endif
 
 #define DEFAULT_RETRY_COUNT 3
+#define FAN_RETRY_RPM_THRESHOLD 100
 static void oplus_fan_retry_work(struct work_struct *work)
 {
 	struct oplus_fan_chip *chip = container_of(work, struct oplus_fan_chip,
@@ -839,7 +849,7 @@ static void oplus_fan_retry_work(struct work_struct *work)
 			break;
 		}
 
-		if (chip->tach.rpm < DAMAGED_RPM_THRESHOLD) {
+		if (chip->tach.rpm < FAN_RETRY_RPM_THRESHOLD) {
 			count++;
 		} else {
 			break;

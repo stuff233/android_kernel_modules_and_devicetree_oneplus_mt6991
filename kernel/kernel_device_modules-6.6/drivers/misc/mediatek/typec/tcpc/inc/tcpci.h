@@ -128,6 +128,10 @@ int tcpci_notify_hvdcp_detect_dn(struct tcpc_device *tcpc, bool hvdcp_detect_dn)
 int tcpci_notify_sourcecap_done(struct tcpc_device *tcpc, struct power_caps *info);
 #endif
 #endif
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* oplus charge add for dp/dm vol */
+int tcpci_set_usb_dpdm_pull_low(struct tcpc_device *tcpc, bool enable);
+#endif
 
 #if IS_ENABLED(CONFIG_USB_POWER_DELIVERY)
 
